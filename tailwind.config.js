@@ -4,23 +4,25 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Helixona brand gold (#d6b981) with derived tints/shades.
         brand: {
-          50: '#eef6ff',
-          100: '#d9eaff',
-          200: '#bcdaff',
-          300: '#8ec4ff',
-          400: '#59a3ff',
-          500: '#327dff',
-          600: '#1a5cf5',
-          700: '#1547e1',
-          800: '#173bb6',
-          900: '#19388f',
+          50: '#faf7f0',
+          100: '#f3ebd9',
+          200: '#e8d7b4',
+          300: '#dfc699',
+          400: '#d9bf8d',
+          500: '#d6b981',
+          600: '#c2a163',
+          700: '#9c7e44',
+          800: '#7c6537',
+          900: '#66532f',
         },
+        // Near-black scale for the sidebar / dark surfaces.
         ink: {
-          900: '#0b1220',
-          800: '#111a2e',
-          700: '#1b2742',
-          600: '#273553',
+          600: '#2b2b2b',
+          700: '#1c1c1c',
+          800: '#111111',
+          900: '#000000',
         },
       },
       fontFamily: {

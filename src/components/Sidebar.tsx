@@ -35,7 +35,7 @@ export default function Sidebar({ current, onChange }: Props) {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-ink-700 bg-ink-900 text-slate-300">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-ink-900">
           <Activity className="h-5 w-5" />
         </div>
         <div className="leading-tight">
@@ -53,7 +53,7 @@ export default function Sidebar({ current, onChange }: Props) {
               onClick={() => onChange(id)}
               className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                 active
-                  ? 'bg-brand-600 text-white shadow'
+                  ? 'bg-brand-500 font-semibold text-ink-900 shadow'
                   : 'text-slate-300 hover:bg-ink-700 hover:text-white'
               }`}
             >

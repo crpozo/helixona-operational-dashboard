@@ -13,10 +13,10 @@ import { getHourlyOccupancy, getOccupancy } from '../data/mockData'
 import { COLORS } from '../lib/colors'
 
 function pctColor(pct: number): string {
-  if (pct >= 90) return COLORS.rose
-  if (pct >= 75) return COLORS.amber
-  if (pct >= 50) return COLORS.insurance
-  return COLORS.slate
+  if (pct >= 90) return '#1c1c1c' // full — near-black
+  if (pct >= 75) return '#d6b981' // healthy — brand gold
+  if (pct >= 50) return '#cbb892' // moderate — light gold
+  return COLORS.slate // low
 }
 
 export default function Occupancy() {

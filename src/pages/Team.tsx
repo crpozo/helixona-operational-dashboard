@@ -59,8 +59,8 @@ export default function Team({ scale }: Props) {
             onClick={() => setActiveId(r.id)}
             className={`rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
               r.id === activeId
-                ? 'border-brand-600 bg-brand-600 text-white shadow'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'
+                ? 'border-brand-500 bg-brand-500 text-ink-900 shadow'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-brand-400'
             }`}
           >
             {r.name}

@@ -131,8 +131,8 @@ export default function Employees({ scale }: Props) {
                 onClick={() => setRoleFilter(rf)}
                 className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
                   roleFilter === rf
-                    ? 'border-brand-600 bg-brand-600 text-white'
-                    : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300'
+                    ? 'border-brand-500 bg-brand-500 text-ink-900'
+                    : 'border-slate-200 bg-white text-slate-500 hover:border-brand-400'
                 }`}
               >
                 {rf}
