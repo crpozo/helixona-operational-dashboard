@@ -26,7 +26,7 @@ export default function KpiCard({ kpi }: Props) {
         <p className="text-sm font-medium text-slate-500">{kpi.label}</p>
         <span
           className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold ${toneClass}`}
-          title="Variación vs periodo anterior"
+          title="Change vs previous period"
         >
           <Icon className="h-3 w-3" />
           {Math.abs(kpi.deltaPct).toFixed(1)}%

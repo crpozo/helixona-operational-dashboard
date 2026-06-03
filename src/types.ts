@@ -1,22 +1,34 @@
-// Tipos centrales del dashboard operacional.
-// Toda la data viene de src/data/mockData.ts (placeholder) y es facil de
-// reemplazar por integraciones reales (ECW / 8x8 / billing) mas adelante.
+// Core types for the operational dashboard.
+// All data comes from src/data/mockData.ts (placeholder) and is easy to
+// swap for real integrations later (ECW / 8x8 / billing).
 
 export type Timeframe = 'week' | 'month' | 'quarter' | 'ytd'
 export type PaymentType = 'all' | 'cash' | 'insurance'
 
 export type Trend = 'up' | 'down' | 'flat'
 
+/** A selected reporting period: either a quick preset or an exact date range. */
+export interface DateRange {
+  /** ISO date yyyy-mm-dd */
+  from: string
+  /** ISO date yyyy-mm-dd */
+  to: string
+}
+
+export type Period =
+  | { kind: 'preset'; preset: Timeframe }
+  | { kind: 'custom'; range: DateRange }
+
 export interface Kpi {
   id: string
   label: string
   value: number
-  /** formato de presentacion del valor */
+  /** presentation format for the value */
   format: 'number' | 'currency' | 'percent' | 'minutes'
-  /** variacion vs periodo anterior, en % */
+  /** change vs previous period, in % */
   deltaPct: number
   trend: Trend
-  /** true cuando "bajar" es bueno (ej: misses, tiempo de espera) */
+  /** true when "lower" is good (e.g. misses, wait time) */
   lowerIsBetter?: boolean
   hint?: string
 }
@@ -57,14 +69,27 @@ export interface EmployeePerformance {
 export interface Role {
   id: RoleId
   name: string
-  /** descripcion corta de la responsabilidad */
+  /** short description of the responsibility */
   summary: string
-  /** fuente de datos esperada (segun notas) */
+  /** expected data source (per notes) */
   source: string
   headcount: number
   metrics: RoleMetric[]
-  /** ranking de empleados por la metrica principal del rol */
+  /** ranking of employees by the role's primary metric */
   leaderboard: EmployeePerformance[]
+}
+
+/** A single employee with their attributed revenue and personal metrics. */
+export interface Employee {
+  id: string
+  name: string
+  role: string
+  roleId: RoleId
+  /** % of scheduled capacity actually worked/booked */
+  utilizationPct: number
+  /** revenue attributed to this employee in the period */
+  revenue: number
+  metrics: RoleMetric[]
 }
 
 export interface ModalityBreakdown {

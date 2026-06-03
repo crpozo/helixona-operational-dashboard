@@ -1,64 +1,82 @@
 # Helixona · Operational Dashboard
 
-Dashboard operacional para clínica (IV therapy / wellness) construido para que
-el fundador sea una **"lupa"** sobre el negocio: controlar empleados, entender
-el revenue y leer toda la operación con datos, métricas y KPIs.
+Operational dashboard for a clinic (IV therapy / wellness) built so the founder
+can be a **"magnifying glass"** over the business: monitor employees, understand
+revenue, and read the whole operation through data, metrics, and KPIs.
 
-> ⚠️ **Toda la data actual es placeholder / demo.** Está aislada en
-> [`src/data/mockData.ts`](src/data/mockData.ts) para que sea trivial
-> reemplazarla por integraciones reales sin tocar la UI.
+> ⚠️ **All current data is placeholder / demo.** It is isolated in
+> [`src/data/mockData.ts`](src/data/mockData.ts) so it is trivial to replace
+> with real integrations without touching the UI.
 
-## Qué incluye
+## What's included
 
-5 vistas, con filtros globales de **rango de tiempo** (semana / mes / trimestre /
-año) y **tipo de pago** (cash / insurance / todo) en el header:
+6 views, with global filters in the header for **reporting period** and
+**payment type** (cash / insurance / all):
 
-| Vista | Qué muestra |
-|-------|-------------|
-| **Resumen ejecutivo** | KPIs vivos (revenue, revenue/empleado, pacientes activos, ticket/paciente, nuevos, espera próx. cita, ocupación, IVs), tendencia de revenue cash vs insurance, embudo de pacientes, revenue por modalidad y alertas operativas. |
-| **Revenue** | Revenue mensual apilado, mix cash/insurance y tabla de revenue + ticket por modalidad. |
-| **Pacientes** | Embudo lead → onboarding → paciente → 1ª cita, pipeline de nuevos (pendientes / onboarded / waitlist / declined) y mix por modalidad. |
-| **Equipo & Roles** | KPIs por rol con metas y leaderboard por persona: Front Desk, Medical Assistants, PCC, Nurses, Medics, New Patient Team. Incluye roll-up para managers. |
-| **Ocupación** | Uso de unidades (sillas/camas) vs capacidad y curva de ocupación por hora del día. |
+| View | What it shows |
+|------|---------------|
+| **Executive overview** | Live KPIs (revenue, revenue/employee, active patients, ticket/patient, new patients, wait for next appt., occupancy, IVs), cash-vs-insurance revenue trend, patient funnel, revenue by modality, and dismissible operational alerts. |
+| **Revenue** | Stacked monthly revenue, cash/insurance payment mix, and a revenue + ticket-by-modality table with **CSV export**. |
+| **Patients** | Lead → onboarding → patient → 1st booking funnel, new-patient pipeline (pending / onboarded / waitlist / declined), and modality mix. |
+| **Team & Roles** | KPIs per role with targets and per-person leaderboards: Front Desk, Medical Assistants, PCC, Nurses, Medics, New Patient Team. Includes a manager roll-up. |
+| **Employees** | Per-employee metrics with **search, role filter, sortable columns, expandable detail rows, and CSV export**. |
+| **Occupancy** | Unit usage (chairs/beds) vs capacity and an hourly occupancy curve. |
 
-## Métricas por rol (según las notas de la operación)
+### Filters that actually drive the data
+- **Period:** quick presets (This week / month / quarter / YTD) **plus a custom
+  exact date range** picker. The selected range rescales all volume-based metrics.
+- **Payment:** Cash + Insurance, Cash only, or Insurance only.
 
-- **Front Desk** — cobranza insurance, ventas cash, llamadas atendidas/salientes
-- **Medical Assistants** — inquiries, vitals, procedimientos, Rx refills
-- **PCC** — citas POC, follow-ups, ventas cash, penetración POC, % "dripping"
-- **Nurses** — EBOOs, sticks, misses, EBOO agendados, upsells ($)
-- **Medics** — starts, misses ($3.20/miss), citas agendadas, upsells, caja EOD
-- **New Patient Team** — leads, llamadas salientes, onboarded, waitlist, declined
+## Metrics per role (from the operation notes)
+
+- **Front Desk** — insurance collections, cash sales, calls answered/outbound
+- **Medical Assistants** — inquiries, vitals, procedures, Rx refills
+- **PCC** — POC appointments, follow-ups, cash sales, POC penetration, % dripping
+- **Nurses** — EBOOs, sticks, misses, EBOO booked, upsells ($)
+- **Medics** — starts, misses ($3.20/miss), appointments booked, upsells, EOD lockbox
+- **New Patient Team** — leads, outbound calls, onboarded, waitlist, declined
 
 ## Stack
 
 - React 18 + TypeScript + Vite
 - Tailwind CSS
-- Recharts (gráficas)
-- lucide-react (iconos)
+- Recharts (charts)
+- lucide-react (icons)
 
-## Desarrollo
+## Development
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm run build    # build de producción a dist/
+npm run build    # production build to dist/
 npm run lint     # type-check (tsc --noEmit)
 ```
 
-## Conectar datos reales
+## Deployment
 
-Las fuentes esperadas (según notas) son **ECW (eClinicalWorks)** para pacientes,
-citas y procedimientos, **8x8** para llamadas, y **billing** para cobranza.
+Pushing to the working branch auto-deploys to GitHub Pages via
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
+**https://crpozo.github.io/helixona-operational-dashboard/**
 
-Para conectar producción, reemplaza las funciones `get*` en
-`src/data/mockData.ts` por llamadas a tu API manteniendo las mismas firmas de
-tipos definidas en [`src/types.ts`](src/types.ts). La capa de UI no necesita
-cambios.
+## Connecting real data
 
-### Próximos pasos sugeridos (de las notas)
+Expected sources (per notes): **ECW (eClinicalWorks)** for patients,
+appointments, and procedures; **8x8** for calls; and **billing** for collections.
 
-- Landing page dedicada para **EBOO** (alta demanda)
-- Funnel de email para nuevos leads
-- Tracking de "distancia"/tiempo de lead → paciente
-- Reportes por unidad/sede y análisis comparativo entre clínicas
+To go live, replace the `get*` functions in `src/data/mockData.ts` with calls to
+your API, keeping the same type signatures from [`src/types.ts`](src/types.ts).
+The UI layer needs no changes.
+
+### Theming / brand colors
+
+Colors are centralized in two places so they're easy to swap to the Helixona
+brand palette: the `brand`/`ink` scales in
+[`tailwind.config.js`](tailwind.config.js) and the chart colors in
+[`src/lib/colors.ts`](src/lib/colors.ts).
+
+### Suggested next steps (from the notes)
+
+- Dedicated **EBOO** landing page (high demand)
+- Email funnel for new leads
+- Track lead → patient "distance"/time
+- Per-unit/site reports and cross-clinic comparison

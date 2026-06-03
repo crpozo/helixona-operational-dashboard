@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import Card from '../components/Card'
 import KpiCard from '../components/KpiCard'
-import type { PaymentType, Timeframe } from '../types'
+import type { PaymentType } from '../types'
 import {
   getExecutiveKpis,
   getModalityBreakdown,
@@ -20,7 +20,7 @@ import {
 import { CATEGORICAL } from '../lib/colors'
 
 interface Props {
-  timeframe: Timeframe
+  scale: number
   payment: PaymentType
 }
 
@@ -31,13 +31,13 @@ const TONE: Record<string, string> = {
   red: 'bg-rose-50 text-rose-700 border-rose-100',
 }
 
-export default function Patients({ timeframe, payment }: Props) {
-  const kpis = getExecutiveKpis(timeframe, payment).filter((k) =>
+export default function Patients({ scale, payment }: Props) {
+  const kpis = getExecutiveKpis(scale, payment).filter((k) =>
     ['active-patients', 'new-patients', 'avg-wait', 'ivs'].includes(k.id),
   )
-  const funnel = getPatientFunnel(timeframe)
-  const pipeline = getNewPatientPipeline(timeframe)
-  const modalities = getModalityBreakdown(timeframe, payment)
+  const funnel = getPatientFunnel(scale)
+  const pipeline = getNewPatientPipeline(scale)
+  const modalities = getModalityBreakdown(scale, payment)
 
   return (
     <div className="space-y-6">
@@ -47,13 +47,10 @@ export default function Patients({ timeframe, payment }: Props) {
         ))}
       </div>
 
-      {/* Pipeline de nuevos pacientes */}
+      {/* New-patient pipeline */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {pipeline.map((p) => (
-          <div
-            key={p.status}
-            className={`rounded-2xl border p-4 ${TONE[p.tone]}`}
-          >
+          <div key={p.status} className={`rounded-2xl border p-4 ${TONE[p.tone]}`}>
             <p className="text-3xl font-bold tabular-nums">{p.count.toLocaleString()}</p>
             <p className="mt-1 text-sm font-medium">{p.status}</p>
           </div>
@@ -61,7 +58,7 @@ export default function Patients({ timeframe, payment }: Props) {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card title="Embudo de conversión" subtitle="De lead a primera cita">
+        <Card title="Conversion funnel" subtitle="From lead to first appointment">
           <div className="space-y-2.5">
             {funnel.map((stage, i) => {
               const pct = Math.round((stage.count / funnel[0].count) * 100)
@@ -73,7 +70,7 @@ export default function Patients({ timeframe, payment }: Props) {
                     <span className="font-medium text-slate-600">{stage.stage}</span>
                     <span className="tabular-nums text-slate-500">
                       {stage.count.toLocaleString()}
-                      {i > 0 && <span className="ml-2 text-xs text-slate-400">({stepConv}% paso)</span>}
+                      {i > 0 && <span className="ml-2 text-xs text-slate-400">({stepConv}% step)</span>}
                     </span>
                   </div>
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -88,13 +85,22 @@ export default function Patients({ timeframe, payment }: Props) {
           </div>
         </Card>
 
-        <Card title="Pacientes por modalidad" subtitle="Mix de servicios">
+        <Card title="Patients by modality" subtitle="Service mix">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={modalities} margin={{ left: -16, right: 8, top: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
-              <XAxis dataKey="modality" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} interval={0} angle={-12} textAnchor="end" height={50} />
+              <XAxis
+                dataKey="modality"
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+                angle={-12}
+                textAnchor="end"
+                height={50}
+              />
               <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v: number) => `${v.toLocaleString()} pacientes`} />
+              <Tooltip formatter={(v: number) => `${v.toLocaleString()} patients`} />
               <Bar dataKey="patients" radius={[6, 6, 0, 0]} barSize={36}>
                 {modalities.map((_, i) => (
                   <Cell key={i} fill={CATEGORICAL[i % CATEGORICAL.length]} />

@@ -31,27 +31,27 @@ export default function Occupancy() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Ocupación global</p>
+          <p className="text-sm font-medium text-slate-500">Overall occupancy</p>
           <p className="mt-2 text-3xl font-bold text-ink-900">{overall}%</p>
-          <p className="mt-1 text-xs text-slate-400">{totalBooked} de {totalCapacity} slots ocupados hoy</p>
+          <p className="mt-1 text-xs text-slate-400">{totalBooked} of {totalCapacity} slots booked today</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Slots disponibles</p>
+          <p className="text-sm font-medium text-slate-500">Available slots</p>
           <p className="mt-2 text-3xl font-bold text-emerald-600">{totalCapacity - totalBooked}</p>
-          <p className="mt-1 text-xs text-slate-400">Capacidad libre para agendar hoy</p>
+          <p className="mt-1 text-xs text-slate-400">Free capacity to book today</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Unidades a tope (≥90%)</p>
+          <p className="text-sm font-medium text-slate-500">Units at capacity (≥90%)</p>
           <p className="mt-2 text-3xl font-bold text-rose-600">
             {units.filter((u) => u.booked / u.capacity >= 0.9).length}
           </p>
-          <p className="mt-1 text-xs text-slate-400">Considerar redistribuir demanda</p>
+          <p className="mt-1 text-xs text-slate-400">Consider redistributing demand</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Ocupación por unidad */}
-        <Card title="Ocupación por unidad" subtitle="Reservado vs capacidad (hoy)">
+        {/* Occupancy by unit */}
+        <Card title="Occupancy by unit" subtitle="Booked vs capacity (today)">
           <div className="space-y-3">
             {units.map((u) => {
               const pct = Math.round((u.booked / u.capacity) * 100)
@@ -64,10 +64,7 @@ export default function Occupancy() {
                     </span>
                   </div>
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: pctColor(pct) }}
-                    />
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pctColor(pct) }} />
                   </div>
                 </div>
               )
@@ -75,8 +72,8 @@ export default function Occupancy() {
           </div>
         </Card>
 
-        {/* Ocupación por hora */}
-        <Card title="Ocupación por hora" subtitle="Curva del día — identificar picos">
+        {/* Occupancy by hour */}
+        <Card title="Occupancy by hour" subtitle="Daily curve — spot the peaks">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={hourly} margin={{ left: -16, right: 8, top: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />

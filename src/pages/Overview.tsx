@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Area,
   AreaChart,
@@ -11,10 +12,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AlertTriangle, Info, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, Info, ShieldAlert, X } from 'lucide-react'
 import Card from '../components/Card'
 import KpiCard from '../components/KpiCard'
-import type { PaymentType, Timeframe } from '../types'
+import type { PaymentType } from '../types'
 import {
   getAlerts,
   getExecutiveKpis,
@@ -26,7 +27,7 @@ import { CATEGORICAL, COLORS } from '../lib/colors'
 import { formatCompact } from '../lib/format'
 
 interface Props {
-  timeframe: Timeframe
+  scale: number
   payment: PaymentType
 }
 
@@ -36,16 +37,17 @@ const SEVERITY = {
   info: { icon: Info, cls: 'text-brand-600 bg-brand-50 border-brand-100' },
 }
 
-export default function Overview({ timeframe, payment }: Props) {
-  const kpis = getExecutiveKpis(timeframe, payment)
+export default function Overview({ scale, payment }: Props) {
+  const kpis = getExecutiveKpis(scale, payment)
   const revenue = getRevenueTrend(payment)
-  const funnel = getPatientFunnel(timeframe)
-  const modalities = getModalityBreakdown(timeframe, payment)
-  const alerts = getAlerts()
+  const funnel = getPatientFunnel(scale)
+  const modalities = getModalityBreakdown(scale, payment)
+  const [dismissed, setDismissed] = useState<string[]>([])
+  const alerts = getAlerts().filter((a) => !dismissed.includes(a.id))
 
   return (
     <div className="space-y-6">
-      {/* KPIs ejecutivos */}
+      {/* Executive KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
           <KpiCard key={k.id} kpi={k} />
@@ -54,11 +56,7 @@ export default function Overview({ timeframe, payment }: Props) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Revenue trend */}
-        <Card
-          title="Revenue mensual"
-          subtitle="Cash vs Insurance"
-          className="lg:col-span-2"
-        >
+        <Card title="Monthly revenue" subtitle="Cash vs Insurance" className="lg:col-span-2">
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={revenue} margin={{ left: -16, right: 8, top: 8 }}>
               <defs>
@@ -81,14 +79,7 @@ export default function Overview({ timeframe, payment }: Props) {
               />
               <Tooltip formatter={(v: number) => formatCompact(v, 'currency')} />
               <Legend iconType="circle" />
-              <Area
-                type="monotone"
-                dataKey="cash"
-                name="Cash"
-                stroke={COLORS.cash}
-                fill="url(#gCash)"
-                strokeWidth={2}
-              />
+              <Area type="monotone" dataKey="cash" name="Cash" stroke={COLORS.cash} fill="url(#gCash)" strokeWidth={2} />
               <Area
                 type="monotone"
                 dataKey="insurance"
@@ -101,31 +92,39 @@ export default function Overview({ timeframe, payment }: Props) {
           </ResponsiveContainer>
         </Card>
 
-        {/* Alertas */}
-        <Card title="Alertas operativas" subtitle="Necesitan atención">
-          <ul className="space-y-3">
-            {alerts.map((a) => {
-              const { icon: Icon, cls } = SEVERITY[a.severity]
-              return (
-                <li
-                  key={a.id}
-                  className={`flex gap-3 rounded-xl border p-3 text-sm ${cls}`}
-                >
-                  <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-                  <div>
-                    <p className="font-medium leading-snug text-ink-900">{a.message}</p>
-                    <p className="mt-0.5 text-xs opacity-70">{a.area}</p>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+        {/* Alerts */}
+        <Card title="Operational alerts" subtitle="Need attention">
+          {alerts.length === 0 ? (
+            <p className="py-10 text-center text-sm text-slate-400">All clear — no open alerts.</p>
+          ) : (
+            <ul className="space-y-3">
+              {alerts.map((a) => {
+                const { icon: Icon, cls } = SEVERITY[a.severity]
+                return (
+                  <li key={a.id} className={`flex gap-3 rounded-xl border p-3 text-sm ${cls}`}>
+                    <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-medium leading-snug text-ink-900">{a.message}</p>
+                      <p className="mt-0.5 text-xs opacity-70">{a.area}</p>
+                    </div>
+                    <button
+                      onClick={() => setDismissed((d) => [...d, a.id])}
+                      className="shrink-0 rounded-md p-0.5 text-slate-400 hover:bg-white/60 hover:text-slate-600"
+                      title="Dismiss"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Embudo de pacientes */}
-        <Card title="Embudo de pacientes" subtitle="Lead → Onboarding → Paciente → 1ª cita">
+        {/* Patient funnel */}
+        <Card title="Patient funnel" subtitle="Lead → Onboarding → Patient → 1st appt.">
           <div className="space-y-2.5">
             {funnel.map((stage, i) => {
               const pct = Math.round((stage.count / funnel[0].count) * 100)
@@ -140,10 +139,7 @@ export default function Overview({ timeframe, payment }: Props) {
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
                       className="h-full rounded-full"
-                      style={{
-                        width: `${pct}%`,
-                        background: CATEGORICAL[i % CATEGORICAL.length],
-                      }}
+                      style={{ width: `${pct}%`, background: CATEGORICAL[i % CATEGORICAL.length] }}
                     />
                   </div>
                 </div>
@@ -152,8 +148,8 @@ export default function Overview({ timeframe, payment }: Props) {
           </div>
         </Card>
 
-        {/* Revenue por modalidad */}
-        <Card title="Revenue por modalidad" subtitle="Distribución del periodo">
+        {/* Revenue by modality */}
+        <Card title="Revenue by modality" subtitle="Period distribution">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={modalities} layout="vertical" margin={{ left: 24, right: 16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" horizontal={false} />

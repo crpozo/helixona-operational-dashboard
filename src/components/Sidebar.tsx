@@ -4,18 +4,26 @@ import {
   DollarSign,
   LayoutDashboard,
   Stethoscope,
+  UserCircle,
   Users,
 } from 'lucide-react'
 import { CLINIC_NAME } from '../data/mockData'
 
-export type PageId = 'overview' | 'patients' | 'revenue' | 'team' | 'occupancy'
+export type PageId =
+  | 'overview'
+  | 'patients'
+  | 'revenue'
+  | 'team'
+  | 'employees'
+  | 'occupancy'
 
 const NAV: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: 'overview', label: 'Resumen ejecutivo', icon: LayoutDashboard },
+  { id: 'overview', label: 'Executive overview', icon: LayoutDashboard },
   { id: 'revenue', label: 'Revenue', icon: DollarSign },
-  { id: 'patients', label: 'Pacientes', icon: Users },
-  { id: 'team', label: 'Equipo & Roles', icon: Stethoscope },
-  { id: 'occupancy', label: 'Ocupación', icon: CalendarClock },
+  { id: 'patients', label: 'Patients', icon: Users },
+  { id: 'team', label: 'Team & Roles', icon: Stethoscope },
+  { id: 'employees', label: 'Employees', icon: UserCircle },
+  { id: 'occupancy', label: 'Occupancy', icon: CalendarClock },
 ]
 
 interface Props {
@@ -58,7 +66,7 @@ export default function Sidebar({ current, onChange }: Props) {
 
       <div className="border-t border-ink-700 px-5 py-4 text-[11px] text-slate-500">
         <p className="font-medium text-slate-400">{CLINIC_NAME}</p>
-        <p className="mt-0.5">Datos demo · placeholder</p>
+        <p className="mt-0.5">Demo data · placeholder</p>
       </div>
     </aside>
   )

@@ -11,28 +11,26 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { Download } from 'lucide-react'
 import Card from '../components/Card'
 import KpiCard from '../components/KpiCard'
-import type { PaymentType, Timeframe } from '../types'
-import {
-  getExecutiveKpis,
-  getModalityBreakdown,
-  getRevenueTrend,
-} from '../data/mockData'
+import type { PaymentType } from '../types'
+import { getExecutiveKpis, getModalityBreakdown, getRevenueTrend } from '../data/mockData'
 import { CATEGORICAL, COLORS } from '../lib/colors'
 import { formatCompact, formatValue } from '../lib/format'
+import { downloadCsv } from '../lib/csv'
 
 interface Props {
-  timeframe: Timeframe
+  scale: number
   payment: PaymentType
 }
 
-export default function Revenue({ timeframe, payment }: Props) {
-  const kpis = getExecutiveKpis(timeframe, payment).filter((k) =>
+export default function Revenue({ scale, payment }: Props) {
+  const kpis = getExecutiveKpis(scale, payment).filter((k) =>
     ['revenue', 'rev-per-employee', 'rev-per-patient', 'ivs'].includes(k.id),
   )
   const trend = getRevenueTrend(payment)
-  const modalities = getModalityBreakdown(timeframe, payment)
+  const modalities = getModalityBreakdown(scale, payment)
 
   const totalCash = trend.reduce((s, p) => s + p.cash, 0)
   const totalIns = trend.reduce((s, p) => s + p.insurance, 0)
@@ -40,6 +38,18 @@ export default function Revenue({ timeframe, payment }: Props) {
     { name: 'Cash', value: totalCash, color: COLORS.cash },
     { name: 'Insurance', value: totalIns, color: COLORS.insurance },
   ].filter((m) => m.value > 0)
+
+  const exportModalities = () =>
+    downloadCsv(
+      'revenue-by-modality.csv',
+      ['Modality', 'Patients', 'Revenue', 'Revenue per patient'],
+      modalities.map((m) => [
+        m.modality,
+        m.patients,
+        m.revenue,
+        m.patients ? Math.round(m.revenue / m.patients) : 0,
+      ]),
+    )
 
   return (
     <div className="space-y-6">
@@ -50,7 +60,7 @@ export default function Revenue({ timeframe, payment }: Props) {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card title="Revenue mensual" subtitle="Stack cash + insurance" className="lg:col-span-2">
+        <Card title="Monthly revenue" subtitle="Stacked cash + insurance" className="lg:col-span-2">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={trend} margin={{ left: -16, right: 8, top: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
@@ -63,25 +73,18 @@ export default function Revenue({ timeframe, payment }: Props) {
               />
               <Tooltip formatter={(v: number) => formatCompact(v, 'currency')} />
               <Legend iconType="circle" />
-              <Bar dataKey="cash" name="Cash" stackId="r" fill={COLORS.cash} radius={[0, 0, 0, 0]} />
+              <Bar dataKey="cash" name="Cash" stackId="r" fill={COLORS.cash} />
               <Bar dataKey="insurance" name="Insurance" stackId="r" fill={COLORS.insurance} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
 
-        <Card title="Mix de pago" subtitle="Cash vs Insurance">
+        <Card title="Payment mix" subtitle="Cash vs Insurance">
           {mix.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie
-                    data={mix}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={3}
-                  >
+                  <Pie data={mix} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={3}>
                     {mix.map((m) => (
                       <Cell key={m.name} fill={m.color} />
                     ))}
@@ -104,21 +107,33 @@ export default function Revenue({ timeframe, payment }: Props) {
               </div>
             </>
           ) : (
-            <p className="py-10 text-center text-sm text-slate-400">Sin datos para este filtro.</p>
+            <p className="py-10 text-center text-sm text-slate-400">No data for this filter.</p>
           )}
         </Card>
       </div>
 
-      <Card title="Revenue y pacientes por modalidad" subtitle="Detalle del periodo">
+      <Card
+        title="Revenue and patients by modality"
+        subtitle="Period detail"
+        action={
+          <button
+            onClick={exportModalities}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-brand-300 hover:text-brand-700"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </button>
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
-                <th className="pb-2 font-semibold">Modalidad</th>
-                <th className="pb-2 text-right font-semibold">Pacientes</th>
+                <th className="pb-2 font-semibold">Modality</th>
+                <th className="pb-2 text-right font-semibold">Patients</th>
                 <th className="pb-2 text-right font-semibold">Revenue</th>
-                <th className="pb-2 text-right font-semibold">Rev / paciente</th>
-                <th className="pb-2 pl-4 font-semibold">Participación</th>
+                <th className="pb-2 text-right font-semibold">Rev / patient</th>
+                <th className="pb-2 pl-4 font-semibold">Share</th>
               </tr>
             </thead>
             <tbody>
@@ -128,9 +143,7 @@ export default function Revenue({ timeframe, payment }: Props) {
                 return (
                   <tr key={m.modality} className="border-b border-slate-100 last:border-0">
                     <td className="py-2.5 font-medium text-ink-900">{m.modality}</td>
-                    <td className="py-2.5 text-right tabular-nums text-slate-600">
-                      {m.patients.toLocaleString()}
-                    </td>
+                    <td className="py-2.5 text-right tabular-nums text-slate-600">{m.patients.toLocaleString()}</td>
                     <td className="py-2.5 text-right tabular-nums font-semibold text-ink-900">
                       {formatValue(m.revenue, 'currency')}
                     </td>

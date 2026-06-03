@@ -1,21 +1,28 @@
 // =============================================================================
-// DATA PLACEHOLDER — Helixona Operational Dashboard
+// PLACEHOLDER DATA — Helixona Operational Dashboard
 // -----------------------------------------------------------------------------
-// Todo aqui es data sintetica/demo. La estructura imita lo que vendria de:
-//   - ECW (eClinicalWorks)  -> pacientes, citas, procedimientos, vitals
-//   - 8x8                   -> llamadas (answered / outbound)
-//   - Billing               -> cobranza insurance vs cash
-// Para conectar data real, reemplaza getDashboardData() por llamadas a tu API
-// manteniendo las mismas firmas de tipos (ver src/types.ts).
+// Everything here is synthetic/demo data. The structure mirrors what would come
+// from:
+//   - ECW (eClinicalWorks)  -> patients, appointments, procedures, vitals
+//   - 8x8                   -> calls (answered / outbound)
+//   - Billing               -> insurance vs cash collections
+// To connect real data, replace these get* functions with calls to your API,
+// keeping the same type signatures (see src/types.ts).
+//
+// Note: the get* functions take a numeric `scale` (1 == one month of volume)
+// so they work the same for quick presets and for an exact date range.
 // =============================================================================
 
 import type {
   Alert,
+  Employee,
   FunnelStage,
   Kpi,
   ModalityBreakdown,
   OccupancyUnit,
   PaymentType,
+  Period,
+  RoleMetric,
   Role,
   Timeframe,
   TimePoint,
@@ -23,7 +30,7 @@ import type {
 
 export const CLINIC_NAME = 'Helixona Wellness'
 
-// Factores de escala para simular distintas ventanas de tiempo.
+// Scale factors to simulate different time windows (1 == one month).
 const TIMEFRAME_SCALE: Record<Timeframe, number> = {
   week: 0.25,
   month: 1,
@@ -32,19 +39,50 @@ const TIMEFRAME_SCALE: Record<Timeframe, number> = {
 }
 
 export const TIMEFRAME_LABELS: Record<Timeframe, string> = {
-  week: 'Esta semana',
-  month: 'Este mes',
-  quarter: 'Trimestre',
-  ytd: 'Año (YTD)',
+  week: 'This week',
+  month: 'This month',
+  quarter: 'Quarter',
+  ytd: 'Year (YTD)',
 }
 
 export const PAYMENT_LABELS: Record<PaymentType, string> = {
   all: 'Cash + Insurance',
-  cash: 'Solo Cash',
-  insurance: 'Solo Insurance',
+  cash: 'Cash only',
+  insurance: 'Insurance only',
 }
 
-// Pequeño hash determinista para que los "delta" se vean estables por filtro.
+const DAYS_PER_MONTH = 30.42
+
+/** Inclusive day count between two ISO dates. */
+export function rangeDays(from: string, to: string): number {
+  const a = new Date(from + 'T00:00:00')
+  const b = new Date(to + 'T00:00:00')
+  const ms = b.getTime() - a.getTime()
+  if (Number.isNaN(ms)) return 0
+  return Math.max(1, Math.round(ms / 86_400_000) + 1)
+}
+
+/** Convert a selected period into a volume scale factor (1 == one month). */
+export function getScale(period: Period): number {
+  if (period.kind === 'preset') return TIMEFRAME_SCALE[period.preset]
+  const days = rangeDays(period.range.from, period.range.to)
+  return days / DAYS_PER_MONTH
+}
+
+/** Human label for the current period (shown in the header subtitle). */
+export function formatPeriodLabel(period: Period): string {
+  if (period.kind === 'preset') return TIMEFRAME_LABELS[period.preset]
+  const { from, to } = period.range
+  const fmt = (iso: string) =>
+    new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  return `${fmt(from)} – ${fmt(to)} (${rangeDays(from, to)} days)`
+}
+
+// Small deterministic hash so the deltas look stable per filter.
 function seeded(n: number, salt: number): number {
   const x = Math.sin((n + 1) * 12.9898 + salt * 78.233) * 43758.5453
   return x - Math.floor(x)
@@ -59,99 +97,98 @@ function paymentMultiplier(payment: PaymentType): { cash: number; insurance: num
 // -----------------------------------------------------------------------------
 // EXECUTIVE OVERVIEW
 // -----------------------------------------------------------------------------
-export function getExecutiveKpis(tf: Timeframe, payment: PaymentType): Kpi[] {
-  const s = TIMEFRAME_SCALE[tf]
+export function getExecutiveKpis(scale: number, payment: PaymentType): Kpi[] {
   const pm = paymentMultiplier(payment)
-  const cashRev = 184_500 * s * pm.cash
-  const insRev = 142_300 * s * pm.insurance
+  const cashRev = 184_500 * scale * pm.cash
+  const insRev = 142_300 * scale * pm.insurance
   const totalRev = cashRev + insRev
   const headcount = 24
-  const activePatients = Math.round(1_280)
+  const activePatients = 1_280
 
   return [
     {
       id: 'revenue',
-      label: 'Revenue total',
+      label: 'Total revenue',
       value: Math.round(totalRev),
       format: 'currency',
       deltaPct: 8.4,
       trend: 'up',
-      hint: 'Cash + Insurance cobrado en el periodo',
+      hint: 'Cash + Insurance collected in the period',
     },
     {
       id: 'rev-per-employee',
-      label: 'Revenue / Empleado',
+      label: 'Revenue / Employee',
       value: Math.round(totalRev / headcount),
       format: 'currency',
       deltaPct: 5.1,
       trend: 'up',
-      hint: 'Productividad por persona del equipo',
+      hint: 'Productivity per team member',
     },
     {
       id: 'active-patients',
-      label: 'Pacientes activos',
+      label: 'Active patients',
       value: activePatients,
       format: 'number',
       deltaPct: 3.2,
       trend: 'up',
-      hint: 'Pacientes con cita en los últimos 90 días',
+      hint: 'Patients seen in the last 90 days',
     },
     {
       id: 'rev-per-patient',
-      label: 'Revenue / Paciente (mes)',
+      label: 'Revenue / Patient (mo)',
       value: Math.round((184_500 + 142_300) / activePatients),
       format: 'currency',
       deltaPct: 2.7,
       trend: 'up',
-      hint: 'Ticket promedio mensual por paciente',
+      hint: 'Average monthly ticket per patient',
     },
     {
       id: 'new-patients',
-      label: 'Pacientes nuevos',
-      value: Math.round(96 * s),
+      label: 'New patients',
+      value: Math.round(96 * scale),
       format: 'number',
       deltaPct: 12.5,
       trend: 'up',
-      hint: 'Altas nuevas en el periodo',
+      hint: 'New sign-ups in the period',
     },
     {
       id: 'avg-wait',
-      label: 'Espera próx. cita',
+      label: 'Wait for next appt.',
       value: 4.6,
       format: 'minutes',
       deltaPct: -6.0,
       trend: 'down',
       lowerIsBetter: true,
-      hint: 'Días promedio de espera para la siguiente cita',
+      hint: 'Average days waiting for the next appointment',
     },
     {
       id: 'occupancy',
-      label: 'Ocupación de unidades',
+      label: 'Unit occupancy',
       value: 82,
       format: 'percent',
       deltaPct: 4.0,
       trend: 'up',
-      hint: 'Sillas/camas ocupadas vs capacidad del día',
+      hint: 'Chairs/beds in use vs daily capacity',
     },
     {
       id: 'ivs',
-      label: 'IVs administrados',
-      value: Math.round(1_540 * s),
+      label: 'IVs administered',
+      value: Math.round(1_540 * scale),
       format: 'number',
       deltaPct: 6.8,
       trend: 'up',
-      hint: 'Total de infusiones IV en el periodo',
+      hint: 'Total IV infusions in the period',
     },
   ]
 }
 
-// Revenue mes a mes (cash vs insurance)
+// Revenue month over month (cash vs insurance)
 export function getRevenueTrend(payment: PaymentType): TimePoint[] {
   const base: TimePoint[] = [
-    { label: 'Ene', cash: 142_000, insurance: 118_000 },
+    { label: 'Jan', cash: 142_000, insurance: 118_000 },
     { label: 'Feb', cash: 151_000, insurance: 121_500 },
     { label: 'Mar', cash: 163_400, insurance: 128_900 },
-    { label: 'Abr', cash: 158_900, insurance: 133_200 },
+    { label: 'Apr', cash: 158_900, insurance: 133_200 },
     { label: 'May', cash: 174_200, insurance: 139_700 },
     { label: 'Jun', cash: 184_500, insurance: 142_300 },
   ]
@@ -163,21 +200,19 @@ export function getRevenueTrend(payment: PaymentType): TimePoint[] {
   }))
 }
 
-// Embudo: lead -> onboarding -> paciente -> primera cita
-export function getPatientFunnel(tf: Timeframe): FunnelStage[] {
-  const s = TIMEFRAME_SCALE[tf]
+// Funnel: lead -> onboarding -> patient -> first booking
+export function getPatientFunnel(scale: number): FunnelStage[] {
   return [
-    { stage: 'Leads', count: Math.round(420 * s) },
-    { stage: 'Contactados', count: Math.round(318 * s) },
-    { stage: 'Onboarding', count: Math.round(204 * s) },
-    { stage: 'Pacientes', count: Math.round(132 * s) },
-    { stage: '1ª cita agendada', count: Math.round(96 * s) },
+    { stage: 'Leads', count: Math.round(420 * scale) },
+    { stage: 'Contacted', count: Math.round(318 * scale) },
+    { stage: 'Onboarding', count: Math.round(204 * scale) },
+    { stage: 'Patients', count: Math.round(132 * scale) },
+    { stage: '1st appt. booked', count: Math.round(96 * scale) },
   ]
 }
 
-export function getModalityBreakdown(tf: Timeframe, payment: PaymentType): ModalityBreakdown[] {
-  const s = TIMEFRAME_SCALE[tf]
-  const pm = (payment === 'all' ? 1 : 0.55)
+export function getModalityBreakdown(scale: number, payment: PaymentType): ModalityBreakdown[] {
+  const pm = payment === 'all' ? 1 : 0.55
   const base: ModalityBreakdown[] = [
     { modality: 'IV Therapy', patients: 540, revenue: 96_400 },
     { modality: 'EBOO', patients: 188, revenue: 121_300 },
@@ -187,33 +222,32 @@ export function getModalityBreakdown(tf: Timeframe, payment: PaymentType): Modal
   ]
   return base.map((m) => ({
     modality: m.modality,
-    patients: Math.round(m.patients * s),
-    revenue: Math.round(m.revenue * s * pm),
+    patients: Math.round(m.patients * scale),
+    revenue: Math.round(m.revenue * scale * pm),
   }))
 }
 
 // -----------------------------------------------------------------------------
-// ROLES / KPIs por rol (segun notas: Front Desk, MA, PCC, Nurse, Medics, New Patient)
+// ROLES / KPIs by role (Front Desk, MA, PCC, Nurse, Medics, New Patient)
 // -----------------------------------------------------------------------------
-export function getRoles(tf: Timeframe): Role[] {
-  const s = TIMEFRAME_SCALE[tf]
-  const r = (n: number) => Math.round(n * s)
+export function getRoles(scale: number): Role[] {
+  const r = (n: number) => Math.round(n * scale)
 
   return [
     {
       id: 'frontDesk',
       name: 'Front Desk',
-      summary: 'Cobranza, ventas cash y manejo de llamadas (entrada/salida).',
+      summary: 'Collections, cash sales, and call handling (inbound/outbound).',
       source: 'ECW + 8x8',
       headcount: 4,
       metrics: [
-        { label: 'Cobranza insurance', value: r(98_400), format: 'currency', target: r(110_000) },
-        { label: 'Ventas cash service', value: r(42_700), format: 'currency', target: r(45_000) },
-        { label: 'Llamadas atendidas', value: r(1_840), format: 'number' },
-        { label: 'Llamadas salientes', value: r(960), format: 'number', target: r(1_200) },
+        { label: 'Insurance collections', value: r(98_400), format: 'currency', target: r(110_000) },
+        { label: 'Cash service sales', value: r(42_700), format: 'currency', target: r(45_000) },
+        { label: 'Calls answered', value: r(1_840), format: 'number' },
+        { label: 'Outbound calls', value: r(960), format: 'number', target: r(1_200) },
       ],
       leaderboard: [
-        { name: 'María G.', metric: r(34_200), format: 'currency' },
+        { name: 'Maria G.', metric: r(34_200), format: 'currency' },
         { name: 'Luis R.', metric: r(31_800), format: 'currency' },
         { name: 'Ana T.', metric: r(18_900), format: 'currency' },
       ],
@@ -221,51 +255,51 @@ export function getRoles(tf: Timeframe): Role[] {
     {
       id: 'ma',
       name: 'Medical Assistants',
-      summary: 'Inquiries de pacientes, vitals, procedimientos y refills.',
+      summary: 'Patient inquiries, vitals, procedures, and refills.',
       source: 'ECW',
       headcount: 5,
       metrics: [
-        { label: 'Inquiries de pacientes', value: r(1_120), format: 'number' },
-        { label: 'Vitals tomados', value: r(2_310), format: 'number' },
-        { label: 'Procedimientos', value: r(1_480), format: 'number' },
+        { label: 'Patient inquiries', value: r(1_120), format: 'number' },
+        { label: 'Vitals taken', value: r(2_310), format: 'number' },
+        { label: 'Procedures', value: r(1_480), format: 'number' },
         { label: 'Rx refills', value: r(640), format: 'number' },
       ],
       leaderboard: [
         { name: 'Karen V.', metric: r(540), format: 'number' },
-        { name: 'José M.', metric: r(498), format: 'number' },
+        { name: 'Jose M.', metric: r(498), format: 'number' },
         { name: 'Paola S.', metric: r(442), format: 'number' },
       ],
     },
     {
       id: 'pcc',
       name: 'PCC · Patient Care Coord.',
-      summary: 'Citas POC, follow-ups, ventas cash y penetración de POC.',
+      summary: 'POC appointments, follow-ups, cash sales, and POC penetration.',
       source: 'ECW + Billing',
       headcount: 3,
       metrics: [
-        { label: 'Citas POC', value: r(412), format: 'number' },
-        { label: 'Citas Follow-up', value: r(688), format: 'number' },
-        { label: 'Ventas cash service', value: r(36_900), format: 'currency' },
-        { label: 'Penetración POC', value: 64, format: 'percent', target: 70 },
-        { label: '% pacientes "dripping"', value: 28, format: 'percent', lowerIsBetter: true },
+        { label: 'POC appointments', value: r(412), format: 'number' },
+        { label: 'Follow-up appointments', value: r(688), format: 'number' },
+        { label: 'Cash service sales', value: r(36_900), format: 'currency' },
+        { label: 'POC penetration', value: 64, format: 'percent', target: 70 },
+        { label: '% of patients dripping', value: 28, format: 'percent', lowerIsBetter: true },
       ],
       leaderboard: [
         { name: 'Diana P.', metric: r(168), format: 'number' },
         { name: 'Rafa C.', metric: r(151), format: 'number' },
-        { name: 'Sofía L.', metric: r(93), format: 'number' },
+        { name: 'Sofia L.', metric: r(93), format: 'number' },
       ],
     },
     {
       id: 'nurse',
       name: 'Nurses',
-      summary: 'EBOO, sticks, misses, EBOO agendados y upsells.',
+      summary: 'EBOO, sticks, misses, EBOO booked, and upsells.',
       source: 'ECW',
       headcount: 4,
       metrics: [
-        { label: 'EBOOs realizados', value: r(188), format: 'number' },
+        { label: 'EBOOs performed', value: r(188), format: 'number' },
         { label: 'Sticks', value: r(1_620), format: 'number' },
         { label: 'Misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
-        { label: 'EBOO agendados', value: r(212), format: 'number' },
+        { label: 'EBOO booked', value: r(212), format: 'number' },
         { label: 'Upsells ($ vol.)', value: r(28_400), format: 'currency' },
       ],
       leaderboard: [
@@ -277,18 +311,18 @@ export function getRoles(tf: Timeframe): Role[] {
     {
       id: 'medics',
       name: 'Medics',
-      summary: 'Starts, misses ($3.20/miss), citas agendadas, upsells, caja EOD.',
+      summary: 'Starts, misses ($3.20/miss), appts booked, upsells, EOD lockbox.',
       source: 'ECW',
       headcount: 5,
       metrics: [
         { label: 'Starts', value: r(1_340), format: 'number' },
         { label: 'Misses', value: r(96), format: 'number', lowerIsBetter: true, target: r(60) },
-        { label: 'Citas agendadas', value: r(880), format: 'number' },
+        { label: 'Appointments booked', value: r(880), format: 'number' },
         { label: 'Upsells', value: r(312), format: 'number' },
-        { label: 'Costo misses', value: r(96) * 3.2, format: 'currency', lowerIsBetter: true },
+        { label: 'Cost of misses', value: r(96) * 3.2, format: 'currency', lowerIsBetter: true },
       ],
       leaderboard: [
-        { name: 'Medic Toño', metric: r(298), format: 'number' },
+        { name: 'Medic Tony', metric: r(298), format: 'number' },
         { name: 'Medic Ivy', metric: r(271), format: 'number' },
         { name: 'Medic Sam', metric: r(244), format: 'number' },
       ],
@@ -296,18 +330,18 @@ export function getRoles(tf: Timeframe): Role[] {
     {
       id: 'newPatient',
       name: 'New Patient Team',
-      summary: 'Leads, llamadas salientes y estado del pipeline de nuevos.',
+      summary: 'Leads, outbound calls, and new-patient pipeline status.',
       source: '8x8 + CRM',
       headcount: 3,
       metrics: [
         { label: 'Leads', value: r(420), format: 'number' },
-        { label: 'Llamadas salientes', value: r(1_180), format: 'number' },
+        { label: 'Outbound calls', value: r(1_180), format: 'number' },
         { label: 'Onboarded', value: r(132), format: 'number' },
-        { label: 'En waitlist', value: r(58), format: 'number' },
+        { label: 'On waitlist', value: r(58), format: 'number' },
         { label: 'Declined', value: r(44), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [
-        { name: 'Coord. Lucía', metric: r(58), format: 'number' },
+        { name: 'Coord. Lucia', metric: r(58), format: 'number' },
         { name: 'Coord. Beto', metric: r(46), format: 'number' },
         { name: 'Coord. Nora', metric: r(28), format: 'number' },
       ],
@@ -315,12 +349,11 @@ export function getRoles(tf: Timeframe): Role[] {
   ]
 }
 
-// Estado del pipeline de nuevos pacientes (para tarjetas tipo "kanban")
-export function getNewPatientPipeline(tf: Timeframe) {
-  const s = TIMEFRAME_SCALE[tf]
-  const r = (n: number) => Math.round(n * s)
+// New-patient pipeline status (for kanban-style cards)
+export function getNewPatientPipeline(scale: number) {
+  const r = (n: number) => Math.round(n * scale)
   return [
-    { status: 'Nuevos / pendientes', count: r(86), tone: 'brand' as const },
+    { status: 'New / pending', count: r(86), tone: 'brand' as const },
     { status: 'Onboarded', count: r(132), tone: 'green' as const },
     { status: 'Waitlist', count: r(58), tone: 'amber' as const },
     { status: 'Declined', count: r(44), tone: 'red' as const },
@@ -328,7 +361,136 @@ export function getNewPatientPipeline(tf: Timeframe) {
 }
 
 // -----------------------------------------------------------------------------
-// OCUPACIÓN DE UNIDADES (sillas / camas por día)
+// PER-EMPLOYEE METRICS
+// -----------------------------------------------------------------------------
+interface EmployeeSeed {
+  id: string
+  name: string
+  role: string
+  roleId: Employee['roleId']
+  utilizationPct: number
+  revenue: number
+  metrics: { label: string; value: number; format: RoleMetric['format']; lowerIsBetter?: boolean }[]
+}
+
+const EMPLOYEE_SEEDS: EmployeeSeed[] = [
+  // Front Desk
+  { id: 'e1', name: 'Maria Garcia', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 94, revenue: 34_200, metrics: [
+    { label: 'Insurance collections', value: 34_200, format: 'currency' },
+    { label: 'Cash sales', value: 12_400, format: 'currency' },
+    { label: 'Calls answered', value: 612, format: 'number' },
+    { label: 'Outbound calls', value: 318, format: 'number' },
+  ] },
+  { id: 'e2', name: 'Luis Ramirez', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 88, revenue: 31_800, metrics: [
+    { label: 'Insurance collections', value: 31_800, format: 'currency' },
+    { label: 'Cash sales', value: 9_900, format: 'currency' },
+    { label: 'Calls answered', value: 540, format: 'number' },
+    { label: 'Outbound calls', value: 286, format: 'number' },
+  ] },
+  { id: 'e3', name: 'Ana Torres', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 79, revenue: 18_900, metrics: [
+    { label: 'Insurance collections', value: 18_900, format: 'currency' },
+    { label: 'Cash sales', value: 7_300, format: 'currency' },
+    { label: 'Calls answered', value: 421, format: 'number' },
+    { label: 'Outbound calls', value: 196, format: 'number' },
+  ] },
+  // Medical Assistants
+  { id: 'e4', name: 'Karen Vega', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 91, revenue: 14_200, metrics: [
+    { label: 'Vitals taken', value: 540, format: 'number' },
+    { label: 'Procedures', value: 372, format: 'number' },
+    { label: 'Patient inquiries', value: 268, format: 'number' },
+    { label: 'Rx refills', value: 154, format: 'number' },
+  ] },
+  { id: 'e5', name: 'Jose Mendez', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 86, revenue: 12_800, metrics: [
+    { label: 'Vitals taken', value: 498, format: 'number' },
+    { label: 'Procedures', value: 341, format: 'number' },
+    { label: 'Patient inquiries', value: 240, format: 'number' },
+    { label: 'Rx refills', value: 132, format: 'number' },
+  ] },
+  { id: 'e6', name: 'Paola Suarez', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 82, revenue: 11_100, metrics: [
+    { label: 'Vitals taken', value: 442, format: 'number' },
+    { label: 'Procedures', value: 298, format: 'number' },
+    { label: 'Patient inquiries', value: 212, format: 'number' },
+    { label: 'Rx refills', value: 118, format: 'number' },
+  ] },
+  // PCC
+  { id: 'e7', name: 'Diana Peralta', role: 'PCC', roleId: 'pcc', utilizationPct: 93, revenue: 18_400, metrics: [
+    { label: 'POC appointments', value: 168, format: 'number' },
+    { label: 'Follow-ups', value: 280, format: 'number' },
+    { label: 'Cash sales', value: 18_400, format: 'currency' },
+    { label: 'POC penetration', value: 71, format: 'percent' },
+  ] },
+  { id: 'e8', name: 'Rafa Castro', role: 'PCC', roleId: 'pcc', utilizationPct: 84, revenue: 12_100, metrics: [
+    { label: 'POC appointments', value: 151, format: 'number' },
+    { label: 'Follow-ups', value: 248, format: 'number' },
+    { label: 'Cash sales', value: 12_100, format: 'currency' },
+    { label: 'POC penetration', value: 63, format: 'percent' },
+  ] },
+  { id: 'e9', name: 'Sofia Lopez', role: 'PCC', roleId: 'pcc', utilizationPct: 76, revenue: 6_400, metrics: [
+    { label: 'POC appointments', value: 93, format: 'number' },
+    { label: 'Follow-ups', value: 160, format: 'number' },
+    { label: 'Cash sales', value: 6_400, format: 'currency' },
+    { label: 'POC penetration', value: 55, format: 'percent' },
+  ] },
+  // Nurses
+  { id: 'e10', name: 'Emma Walsh', role: 'Nurse', roleId: 'nurse', utilizationPct: 95, revenue: 41_600, metrics: [
+    { label: 'EBOOs performed', value: 62, format: 'number' },
+    { label: 'Sticks', value: 540, format: 'number' },
+    { label: 'Misses', value: 18, format: 'number', lowerIsBetter: true },
+    { label: 'Upsells ($)', value: 12_400, format: 'currency' },
+  ] },
+  { id: 'e11', name: 'Jon Pierce', role: 'Nurse', roleId: 'nurse', utilizationPct: 89, revenue: 36_200, metrics: [
+    { label: 'EBOOs performed', value: 54, format: 'number' },
+    { label: 'Sticks', value: 498, format: 'number' },
+    { label: 'Misses', value: 24, format: 'number', lowerIsBetter: true },
+    { label: 'Upsells ($)', value: 9_800, format: 'currency' },
+  ] },
+  { id: 'e12', name: 'Bea Nolan', role: 'Nurse', roleId: 'nurse', utilizationPct: 80, revenue: 27_500, metrics: [
+    { label: 'EBOOs performed', value: 41, format: 'number' },
+    { label: 'Sticks', value: 402, format: 'number' },
+    { label: 'Misses', value: 32, format: 'number', lowerIsBetter: true },
+    { label: 'Upsells ($)', value: 6_200, format: 'currency' },
+  ] },
+  // Medics
+  { id: 'e13', name: 'Tony Reyes', role: 'Medic', roleId: 'medics', utilizationPct: 92, revenue: 22_800, metrics: [
+    { label: 'Starts', value: 298, format: 'number' },
+    { label: 'Appointments booked', value: 210, format: 'number' },
+    { label: 'Misses', value: 19, format: 'number', lowerIsBetter: true },
+    { label: 'Upsells', value: 84, format: 'number' },
+  ] },
+  { id: 'e14', name: 'Ivy Chen', role: 'Medic', roleId: 'medics', utilizationPct: 87, revenue: 20_100, metrics: [
+    { label: 'Starts', value: 271, format: 'number' },
+    { label: 'Appointments booked', value: 188, format: 'number' },
+    { label: 'Misses', value: 26, format: 'number', lowerIsBetter: true },
+    { label: 'Upsells', value: 71, format: 'number' },
+  ] },
+  { id: 'e15', name: 'Sam Brooks', role: 'Medic', roleId: 'medics', utilizationPct: 81, revenue: 17_900, metrics: [
+    { label: 'Starts', value: 244, format: 'number' },
+    { label: 'Appointments booked', value: 162, format: 'number' },
+    { label: 'Misses', value: 31, format: 'number', lowerIsBetter: true },
+    { label: 'Upsells', value: 58, format: 'number' },
+  ] },
+]
+
+export function getEmployees(scale: number): Employee[] {
+  return EMPLOYEE_SEEDS.map((e) => ({
+    id: e.id,
+    name: e.name,
+    role: e.role,
+    roleId: e.roleId,
+    utilizationPct: e.utilizationPct,
+    revenue: Math.round(e.revenue * scale),
+    metrics: e.metrics.map((m) => ({
+      label: m.label,
+      // percentages and utilization do not scale with the period
+      value: m.format === 'percent' ? m.value : Math.round(m.value * scale),
+      format: m.format,
+      lowerIsBetter: m.lowerIsBetter,
+    })),
+  }))
+}
+
+// -----------------------------------------------------------------------------
+// UNIT OCCUPANCY (chairs / beds per day)
 // -----------------------------------------------------------------------------
 export function getOccupancy(): OccupancyUnit[] {
   return [
@@ -336,13 +498,13 @@ export function getOccupancy(): OccupancyUnit[] {
     { unit: 'IV Suite B', capacity: 8, booked: 6 },
     { unit: 'EBOO Room 1', capacity: 4, booked: 4 },
     { unit: 'EBOO Room 2', capacity: 4, booked: 3 },
-    { unit: 'Consulta 1', capacity: 6, booked: 5 },
-    { unit: 'Consulta 2', capacity: 6, booked: 4 },
+    { unit: 'Exam Room 1', capacity: 6, booked: 5 },
+    { unit: 'Exam Room 2', capacity: 6, booked: 4 },
     { unit: 'Aesthetics', capacity: 5, booked: 4 },
   ]
 }
 
-// Ocupación a lo largo del día (heatmap simple)
+// Occupancy across the day (simple heatmap)
 export function getHourlyOccupancy(): { hour: string; pct: number }[] {
   const hours = ['8a', '9a', '10a', '11a', '12p', '1p', '2p', '3p', '4p', '5p', '6p']
   return hours.map((hour, i) => ({
@@ -352,32 +514,32 @@ export function getHourlyOccupancy(): { hour: string; pct: number }[] {
 }
 
 // -----------------------------------------------------------------------------
-// ALERTAS (insights accionables)
+// ALERTS (actionable insights)
 // -----------------------------------------------------------------------------
 export function getAlerts(): Alert[] {
   return [
     {
       id: 'a1',
       severity: 'critical',
-      message: 'Medics: misses por encima del target (96 vs 60). Costo estimado $307.',
+      message: 'Medics: misses above target (96 vs 60). Estimated cost $307.',
       area: 'Medics',
     },
     {
       id: 'a2',
       severity: 'warning',
-      message: 'PCC: penetración POC en 64%, debajo del objetivo de 70%.',
+      message: 'PCC: POC penetration at 64%, below the 70% target.',
       area: 'PCC',
     },
     {
       id: 'a3',
       severity: 'warning',
-      message: 'Front Desk: llamadas salientes en 960 vs meta de 1,200.',
+      message: 'Front Desk: outbound calls at 960 vs target of 1,200.',
       area: 'Front Desk',
     },
     {
       id: 'a4',
       severity: 'info',
-      message: 'EBOO necesita landing page propia — 212 agendados, alta demanda.',
+      message: 'EBOO needs its own landing page — 212 booked, high demand.',
       area: 'Growth',
     },
   ]
