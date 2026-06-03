@@ -37,6 +37,10 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          # Habilita GitHub Pages automaticamente si aun no esta activo
+          # (usa el GITHUB_TOKEN del workflow, que tiene pages: write).
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
