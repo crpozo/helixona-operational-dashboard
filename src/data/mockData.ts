@@ -26,12 +26,14 @@ import type {
   Role,
   Timeframe,
   TimePoint,
+  TodayEmployee,
 } from '../types'
 
 export const CLINIC_NAME = 'Helixona Wellness'
 
 // Scale factors to simulate different time windows (1 == one month).
 const TIMEFRAME_SCALE: Record<Timeframe, number> = {
+  today: 1 / 30.42,
   week: 0.25,
   month: 1,
   quarter: 3,
@@ -39,6 +41,7 @@ const TIMEFRAME_SCALE: Record<Timeframe, number> = {
 }
 
 export const TIMEFRAME_LABELS: Record<Timeframe, string> = {
+  today: 'Today',
   week: 'This week',
   month: 'This month',
   quarter: 'Quarter',
@@ -487,6 +490,170 @@ export function getEmployees(scale: number): Employee[] {
       lowerIsBetter: m.lowerIsBetter,
     })),
   }))
+}
+
+// -----------------------------------------------------------------------------
+// TODAY — live daily snapshot
+// -----------------------------------------------------------------------------
+
+// Clinic hours, used to figure out how much of "today" has happened so far.
+const CLINIC_OPEN = 8
+const CLINIC_CLOSE = 18
+
+/** Current clinic hour, clamped to opening hours (drives the "so far today" cut). */
+function nowHour(): number {
+  const h = new Date().getHours()
+  return Math.min(CLINIC_CLOSE, Math.max(CLINIC_OPEN, h))
+}
+
+/** "as of" timestamp shown on the live view. */
+export function asOfLabel(): string {
+  return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+export function getTodayKpis(): Kpi[] {
+  const scheduled = 52
+  const arrived = 38
+  const cash = 6_240
+  const insurance = 4_810
+  return [
+    {
+      id: 'patients-today',
+      label: 'Patients in today',
+      value: arrived,
+      format: 'number',
+      deltaPct: 9.0,
+      trend: 'up',
+      hint: `${arrived} of ${scheduled} scheduled checked in`,
+    },
+    {
+      id: 'revenue-today',
+      label: 'Revenue today',
+      value: cash + insurance,
+      format: 'currency',
+      deltaPct: 12.0,
+      trend: 'up',
+      hint: `Cash $${cash.toLocaleString()} · Insurance $${insurance.toLocaleString()}`,
+    },
+    {
+      id: 'appts-remaining',
+      label: 'Appointments left',
+      value: 14,
+      format: 'number',
+      deltaPct: 0,
+      trend: 'flat',
+      hint: 'Still on the schedule for today',
+    },
+    {
+      id: 'new-today',
+      label: 'New patients today',
+      value: 5,
+      format: 'number',
+      deltaPct: 25.0,
+      trend: 'up',
+      hint: 'First-time sign-ups checked in today',
+    },
+    {
+      id: 'occupancy-now',
+      label: 'Occupancy now',
+      value: 78,
+      format: 'percent',
+      deltaPct: 6.0,
+      trend: 'up',
+      hint: 'Chairs/beds in use right now',
+    },
+    {
+      id: 'no-shows-today',
+      label: 'No-shows today',
+      value: 3,
+      format: 'number',
+      deltaPct: -1.0,
+      trend: 'down',
+      lowerIsBetter: true,
+      hint: 'Missed appointments so far',
+    },
+    {
+      id: 'ivs-today',
+      label: 'IVs today',
+      value: 47,
+      format: 'number',
+      deltaPct: 8.0,
+      trend: 'up',
+      hint: 'Infusions administered so far',
+    },
+    {
+      id: 'eboo-today',
+      label: 'EBOOs today',
+      value: 6,
+      format: 'number',
+      deltaPct: 20.0,
+      trend: 'up',
+      hint: 'EBOO procedures completed',
+    },
+  ]
+}
+
+/** Patient arrivals and revenue per hour today (only past hours have actuals). */
+export function getTodayHourly(): { hour: string; arrivals: number; revenue: number; past: boolean }[] {
+  const nh = nowHour()
+  const shape = [3, 5, 6, 7, 4, 5, 6, 5, 4, 2] // arrivals per hour, 8a..5p
+  return shape.map((arrivals, i) => {
+    const hour24 = CLINIC_OPEN + i
+    const past = hour24 < nh
+    const label = `${((hour24 + 11) % 12) + 1}${hour24 < 12 ? 'a' : 'p'}`
+    return {
+      hour: label,
+      arrivals: past ? arrivals : 0,
+      revenue: past ? arrivals * 290 : 0,
+      past,
+    }
+  })
+}
+
+/** Live per-employee performance for today. */
+export function getEmployeesToday(): TodayEmployee[] {
+  // Who's on shift today (a realistic subset of the roster).
+  const shift: Record<string, { patients: number; revenue: number; target: number }> = {
+    e1: { patients: 9, revenue: 2_100, target: 2_400 },
+    e2: { patients: 7, revenue: 1_640, target: 2_000 },
+    e4: { patients: 12, revenue: 980, target: 900 },
+    e5: { patients: 10, revenue: 820, target: 900 },
+    e7: { patients: 8, revenue: 1_480, target: 1_300 },
+    e10: { patients: 6, revenue: 3_200, target: 2_800 },
+    e11: { patients: 5, revenue: 2_300, target: 2_600 },
+    e13: { patients: 11, revenue: 1_620, target: 1_500 },
+    e14: { patients: 9, revenue: 1_280, target: 1_500 },
+  }
+  return EMPLOYEE_SEEDS.map((e) => {
+    const s = shift[e.id]
+    if (!s) {
+      return {
+        id: e.id,
+        name: e.name,
+        role: e.role,
+        onShift: false,
+        patients: 0,
+        revenue: 0,
+        target: 0,
+        perfPct: 0,
+        status: 'off' as const,
+      }
+    }
+    const perfPct = Math.round((s.revenue / s.target) * 100)
+    const status: TodayEmployee['status'] =
+      perfPct >= 100 ? 'ahead' : perfPct >= 85 ? 'on-track' : 'behind'
+    return {
+      id: e.id,
+      name: e.name,
+      role: e.role,
+      onShift: true,
+      patients: s.patients,
+      revenue: s.revenue,
+      target: s.target,
+      perfPct,
+      status,
+    }
+  })
 }
 
 // -----------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 // All data comes from src/data/mockData.ts (placeholder) and is easy to
 // swap for real integrations later (ECW / 8x8 / billing).
 
-export type Timeframe = 'week' | 'month' | 'quarter' | 'ytd'
+export type Timeframe = 'today' | 'week' | 'month' | 'quarter' | 'ytd'
 export type PaymentType = 'all' | 'cash' | 'insurance'
 
 export type Trend = 'up' | 'down' | 'flat'
@@ -90,6 +90,23 @@ export interface Employee {
   /** revenue attributed to this employee in the period */
   revenue: number
   metrics: RoleMetric[]
+}
+
+/** One employee's live performance for the current day. */
+export interface TodayEmployee {
+  id: string
+  name: string
+  role: string
+  onShift: boolean
+  /** patients seen so far today */
+  patients: number
+  /** revenue generated so far today */
+  revenue: number
+  /** daily revenue target */
+  target: number
+  /** actual vs target, as a percentage */
+  perfPct: number
+  status: 'ahead' | 'on-track' | 'behind' | 'off'
 }
 
 export interface ModalityBreakdown {

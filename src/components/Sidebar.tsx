@@ -4,12 +4,14 @@ import {
   DollarSign,
   LayoutDashboard,
   Stethoscope,
+  Sun,
   UserCircle,
   Users,
 } from 'lucide-react'
 import { CLINIC_NAME } from '../data/mockData'
 
 export type PageId =
+  | 'today'
   | 'overview'
   | 'patients'
   | 'revenue'
@@ -18,6 +20,7 @@ export type PageId =
   | 'occupancy'
 
 const NAV: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
+  { id: 'today', label: 'Today', icon: Sun },
   { id: 'overview', label: 'Executive overview', icon: LayoutDashboard },
   { id: 'revenue', label: 'Revenue', icon: DollarSign },
   { id: 'patients', label: 'Patients', icon: Users },

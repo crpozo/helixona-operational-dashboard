@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import Sidebar, { type PageId } from './components/Sidebar'
 import Header from './components/Header'
+import Today from './pages/Today'
 import Overview from './pages/Overview'
 import Revenue from './pages/Revenue'
 import Patients from './pages/Patients'
@@ -11,6 +12,7 @@ import type { PaymentType, Period } from './types'
 import { formatPeriodLabel, getScale } from './data/mockData'
 
 const PAGE_META: Record<PageId, { title: string; subtitle: string }> = {
+  today: { title: 'Today', subtitle: 'Live daily snapshot of the operation' },
   overview: { title: 'Executive overview', subtitle: 'The whole operation at a glance' },
   revenue: { title: 'Revenue', subtitle: 'Collections, payment mix, and ticket by modality' },
   patients: { title: 'Patients', subtitle: 'Funnel, new-patient pipeline, and modalities' },
@@ -20,7 +22,7 @@ const PAGE_META: Record<PageId, { title: string; subtitle: string }> = {
 }
 
 export default function App() {
-  const [page, setPage] = useState<PageId>('overview')
+  const [page, setPage] = useState<PageId>('today')
   const [period, setPeriod] = useState<Period>({ kind: 'preset', preset: 'month' })
   const [payment, setPayment] = useState<PaymentType>('all')
 
@@ -43,6 +45,7 @@ export default function App() {
         />
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
+          {page === 'today' && <Today />}
           {page === 'overview' && <Overview scale={scale} payment={payment} />}
           {page === 'revenue' && <Revenue scale={scale} payment={payment} />}
           {page === 'patients' && <Patients scale={scale} payment={payment} />}
