@@ -9,6 +9,9 @@ interface Props {
   payment: PaymentType
   onPeriod: (p: Period) => void
   onPayment: (p: PaymentType) => void
+  /** which filters apply to the current page */
+  showPeriod?: boolean
+  showPayment?: boolean
 }
 
 const TIMEFRAMES: Timeframe[] = ['today', 'week', 'month', 'quarter', 'ytd']
@@ -35,6 +38,8 @@ export default function Header({
   payment,
   onPeriod,
   onPayment,
+  showPeriod = true,
+  showPayment = true,
 }: Props) {
   const isCustom = period.kind === 'custom'
 
@@ -48,37 +53,41 @@ export default function Header({
         </div>
 
         {/* Payment filter */}
-        <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
-          <CreditCard className="ml-1 h-4 w-4 shrink-0 text-slate-400" />
-          {PAYMENTS.map((p) => (
-            <button key={p} onClick={() => onPayment(p)} className={chip(payment === p)}>
-              {PAYMENT_LABELS[p]}
-            </button>
-          ))}
-        </div>
+        {showPayment && (
+          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <CreditCard className="ml-1 h-4 w-4 shrink-0 text-slate-400" />
+            {PAYMENTS.map((p) => (
+              <button key={p} onClick={() => onPayment(p)} className={chip(payment === p)}>
+                {PAYMENT_LABELS[p]}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Time filter: presets + custom */}
-        <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
-          <Calendar className="ml-1 h-4 w-4 shrink-0 text-slate-400" />
-          {TIMEFRAMES.map((t) => (
+        {showPeriod && (
+          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <Calendar className="ml-1 h-4 w-4 shrink-0 text-slate-400" />
+            {TIMEFRAMES.map((t) => (
+              <button
+                key={t}
+                onClick={() => onPeriod({ kind: 'preset', preset: t })}
+                className={chip(period.kind === 'preset' && period.preset === t)}
+              >
+                {TIMEFRAME_LABELS[t]}
+              </button>
+            ))}
             <button
-              key={t}
-              onClick={() => onPeriod({ kind: 'preset', preset: t })}
-              className={chip(period.kind === 'preset' && period.preset === t)}
+              onClick={() => onPeriod({ kind: 'custom', range: defaultRange() })}
+              className={chip(isCustom)}
             >
-              {TIMEFRAME_LABELS[t]}
+              Custom
             </button>
-          ))}
-          <button
-            onClick={() => onPeriod({ kind: 'custom', range: defaultRange() })}
-            className={chip(isCustom)}
-          >
-            Custom
-          </button>
-        </div>
+          </div>
+        )}
 
         {/* Exact date-range inputs — inline, only when "Custom" is active */}
-        {isCustom && (
+        {showPeriod && isCustom && (
           <div className="flex items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50/50 px-2 py-1">
             <input
               type="date"

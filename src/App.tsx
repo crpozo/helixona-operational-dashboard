@@ -11,14 +11,17 @@ import Occupancy from './pages/Occupancy'
 import type { PaymentType, Period } from './types'
 import { formatPeriodLabel, getScale } from './data/mockData'
 
-const PAGE_META: Record<PageId, { title: string; subtitle: string }> = {
-  today: { title: 'Today', subtitle: 'Live daily snapshot of the operation' },
-  overview: { title: 'Executive overview', subtitle: 'The whole operation at a glance' },
-  revenue: { title: 'Revenue', subtitle: 'Collections, payment mix, and ticket by modality' },
-  patients: { title: 'Patients', subtitle: 'Funnel, new-patient pipeline, and modalities' },
-  team: { title: 'Team & Roles', subtitle: 'KPIs by role and per-person performance' },
-  employees: { title: 'Employees', subtitle: 'Per-employee metrics, revenue, and productivity' },
-  occupancy: { title: 'Occupancy', subtitle: 'Unit usage and the daily curve' },
+const PAGE_META: Record<
+  PageId,
+  { title: string; subtitle: string; period: boolean; payment: boolean }
+> = {
+  today: { title: 'Today', subtitle: 'Live daily snapshot of the operation', period: false, payment: false },
+  overview: { title: 'Executive overview', subtitle: 'The whole operation at a glance', period: true, payment: true },
+  revenue: { title: 'Revenue', subtitle: 'Collections, payment mix, and ticket by modality', period: true, payment: true },
+  patients: { title: 'Patients', subtitle: 'Funnel, new-patient pipeline, and modalities', period: true, payment: true },
+  team: { title: 'Team & Roles', subtitle: 'KPIs by role and per-person performance', period: true, payment: false },
+  employees: { title: 'Employees', subtitle: 'Per-employee metrics, revenue, and productivity', period: true, payment: true },
+  occupancy: { title: 'Occupancy', subtitle: 'Unit usage and the daily curve', period: false, payment: false },
 }
 
 export default function App() {
@@ -28,7 +31,8 @@ export default function App() {
 
   const scale = useMemo(() => getScale(period), [period])
   const meta = PAGE_META[page]
-  const subtitle = `${meta.subtitle} · ${formatPeriodLabel(period)}`
+  // Only append the period label when the period filter applies to this page.
+  const subtitle = meta.period ? `${meta.subtitle} · ${formatPeriodLabel(period)}` : meta.subtitle
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -42,6 +46,8 @@ export default function App() {
           payment={payment}
           onPeriod={setPeriod}
           onPayment={setPayment}
+          showPeriod={meta.period}
+          showPayment={meta.payment}
         />
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
@@ -50,7 +56,7 @@ export default function App() {
           {page === 'revenue' && <Revenue scale={scale} payment={payment} />}
           {page === 'patients' && <Patients scale={scale} payment={payment} />}
           {page === 'team' && <Team scale={scale} />}
-          {page === 'employees' && <Employees scale={scale} />}
+          {page === 'employees' && <Employees scale={scale} payment={payment} />}
           {page === 'occupancy' && <Occupancy />}
         </main>
       </div>

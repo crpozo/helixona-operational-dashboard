@@ -5,9 +5,11 @@ import type { Employee } from '../types'
 import { getEmployees } from '../data/mockData'
 import { formatValue } from '../lib/format'
 import { downloadCsv } from '../lib/csv'
+import type { PaymentType } from '../types'
 
 interface Props {
   scale: number
+  payment: PaymentType
 }
 
 type SortKey = 'name' | 'role' | 'revenue' | 'utilizationPct'
@@ -20,8 +22,8 @@ function utilTone(pct: number): string {
   return 'text-rose-600'
 }
 
-export default function Employees({ scale }: Props) {
-  const employees = getEmployees(scale)
+export default function Employees({ scale, payment }: Props) {
+  const employees = getEmployees(scale, payment)
 
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<(typeof ROLE_FILTERS)[number]>('All')

@@ -474,18 +474,29 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
   ] },
 ]
 
-export function getEmployees(scale: number): Employee[] {
+// Approximate share of revenue by payment type (cash vs insurance).
+function paymentShare(payment: PaymentType): number {
+  if (payment === 'cash') return 0.57
+  if (payment === 'insurance') return 0.43
+  return 1
+}
+
+export function getEmployees(scale: number, payment: PaymentType = 'all'): Employee[] {
+  const share = paymentShare(payment)
   return EMPLOYEE_SEEDS.map((e) => ({
     id: e.id,
     name: e.name,
     role: e.role,
     roleId: e.roleId,
     utilizationPct: e.utilizationPct,
-    revenue: Math.round(e.revenue * scale),
+    revenue: Math.round(e.revenue * scale * share),
     metrics: e.metrics.map((m) => ({
       label: m.label,
-      // percentages and utilization do not scale with the period
-      value: m.format === 'percent' ? m.value : Math.round(m.value * scale),
+      // percentages/utilization don't scale; currency also reflects payment mix
+      value:
+        m.format === 'percent'
+          ? m.value
+          : Math.round(m.value * scale * (m.format === 'currency' ? share : 1)),
       format: m.format,
       lowerIsBetter: m.lowerIsBetter,
     })),
