@@ -3,6 +3,7 @@ import {
   CalendarClock,
   DollarSign,
   LayoutDashboard,
+  Route,
   Stethoscope,
   Sun,
   UserCircle,
@@ -14,6 +15,7 @@ export type PageId =
   | 'today'
   | 'overview'
   | 'patients'
+  | 'journey'
   | 'revenue'
   | 'team'
   | 'employees'
@@ -24,6 +26,7 @@ const NAV: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Executive overview', icon: LayoutDashboard },
   { id: 'revenue', label: 'Revenue', icon: DollarSign },
   { id: 'patients', label: 'Patients', icon: Users },
+  { id: 'journey', label: 'Patient Journey', icon: Route },
   { id: 'team', label: 'Team & Roles', icon: Stethoscope },
   { id: 'employees', label: 'Employees', icon: UserCircle },
   { id: 'occupancy', label: 'Occupancy', icon: CalendarClock },

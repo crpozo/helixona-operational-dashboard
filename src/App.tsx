@@ -5,6 +5,7 @@ import Today from './pages/Today'
 import Overview from './pages/Overview'
 import Revenue from './pages/Revenue'
 import Patients from './pages/Patients'
+import PatientJourney from './pages/PatientJourney'
 import Team from './pages/Team'
 import Employees from './pages/Employees'
 import Occupancy from './pages/Occupancy'
@@ -19,6 +20,7 @@ const PAGE_META: Record<
   overview: { title: 'Executive overview', subtitle: 'The whole operation at a glance', period: true, payment: true },
   revenue: { title: 'Revenue', subtitle: 'Collections, payment mix, and ticket by modality', period: true, payment: true },
   patients: { title: 'Patients', subtitle: 'Funnel, new-patient pipeline, and modalities', period: true, payment: true },
+  journey: { title: 'Patient Journey', subtitle: 'Where each patient is in the lifecycle', period: false, payment: false },
   team: { title: 'Team & Roles', subtitle: 'KPIs by role and per-person performance', period: true, payment: false },
   employees: { title: 'Employees', subtitle: 'Per-employee metrics, revenue, and productivity', period: true, payment: true },
   occupancy: { title: 'Occupancy', subtitle: 'Unit usage and the daily curve', period: false, payment: false },
@@ -55,6 +57,7 @@ export default function App() {
           {page === 'overview' && <Overview scale={scale} payment={payment} />}
           {page === 'revenue' && <Revenue scale={scale} payment={payment} />}
           {page === 'patients' && <Patients scale={scale} payment={payment} />}
+          {page === 'journey' && <PatientJourney />}
           {page === 'team' && <Team scale={scale} />}
           {page === 'employees' && <Employees scale={scale} payment={payment} />}
           {page === 'occupancy' && <Occupancy />}

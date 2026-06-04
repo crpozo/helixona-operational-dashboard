@@ -20,6 +20,7 @@ import type {
   Kpi,
   ModalityBreakdown,
   OccupancyUnit,
+  PatientRecord,
   PaymentType,
   Period,
   RoleMetric,
@@ -350,6 +351,99 @@ export function getRoles(scale: number): Role[] {
       ],
     },
   ]
+}
+
+// -----------------------------------------------------------------------------
+// PATIENT JOURNEY — individual patient detail / lifecycle stage
+// -----------------------------------------------------------------------------
+
+// The lifecycle every patient moves through.
+export const PATIENT_STAGES = [
+  'Lead',
+  'Contacted',
+  'Onboarding',
+  'Patient',
+  'First appointment',
+  'Active',
+] as const
+
+const PATIENTS: PatientRecord[] = [
+  {
+    id: 'p1', name: 'Olivia Bennett', stageIndex: 5, status: 'active', modality: 'IV Therapy',
+    coordinator: 'Coord. Lucia', source: 'Referral', createdAt: '2026-02-10',
+    nextAppt: '2026-06-09', revenue: 3_420, phone: '(305) 555-0142', email: 'olivia.b@example.com',
+    stageDates: ['2026-02-10', '2026-02-11', '2026-02-14', '2026-02-18', '2026-02-25', '2026-03-12'],
+  },
+  {
+    id: 'p2', name: 'Marcus Hale', stageIndex: 4, status: 'on-track', modality: 'EBOO',
+    coordinator: 'Coord. Beto', source: 'EBOO landing page', createdAt: '2026-05-20',
+    nextAppt: '2026-06-06', revenue: 1_850, phone: '(305) 555-0188', email: 'm.hale@example.com',
+    stageDates: ['2026-05-20', '2026-05-21', '2026-05-26', '2026-05-30', '2026-06-02', undefined],
+  },
+  {
+    id: 'p3', name: 'Sophia Nguyen', stageIndex: 3, status: 'on-track', modality: 'Hormone / HRT',
+    coordinator: 'Coord. Nora', source: 'Ad spend', createdAt: '2026-05-28',
+    nextAppt: '2026-06-05', revenue: 420, phone: '(305) 555-0123', email: 's.nguyen@example.com',
+    stageDates: ['2026-05-28', '2026-05-29', '2026-06-01', '2026-06-03', undefined, undefined],
+  },
+  {
+    id: 'p4', name: 'James Carter', stageIndex: 2, status: 'on-track', modality: 'Peptides',
+    coordinator: 'Coord. Lucia', source: 'Referral', createdAt: '2026-06-01',
+    nextAppt: undefined, revenue: 0, phone: '(305) 555-0177', email: 'jcarter@example.com',
+    stageDates: ['2026-06-01', '2026-06-02', '2026-06-03', undefined, undefined, undefined],
+  },
+  {
+    id: 'p5', name: 'Emma Rodriguez', stageIndex: 1, status: 'on-track', modality: 'Aesthetics',
+    coordinator: 'Coord. Beto', source: 'Instagram', createdAt: '2026-06-02',
+    nextAppt: undefined, revenue: 0, phone: '(305) 555-0119', email: 'emma.r@example.com',
+    stageDates: ['2026-06-02', '2026-06-03', undefined, undefined, undefined, undefined],
+  },
+  {
+    id: 'p6', name: 'Liam Foster', stageIndex: 0, status: 'on-track', modality: 'IV Therapy',
+    coordinator: 'Coord. Nora', source: 'Ad spend', createdAt: '2026-06-04',
+    nextAppt: undefined, revenue: 0, phone: '(305) 555-0160', email: 'liam.f@example.com',
+    stageDates: ['2026-06-04', undefined, undefined, undefined, undefined, undefined],
+  },
+  {
+    id: 'p7', name: 'Ava Mitchell', stageIndex: 2, status: 'waitlist', modality: 'EBOO',
+    coordinator: 'Coord. Lucia', source: 'EBOO landing page', createdAt: '2026-05-25',
+    nextAppt: undefined, revenue: 0, phone: '(305) 555-0101', email: 'ava.m@example.com',
+    stageDates: ['2026-05-25', '2026-05-27', '2026-05-31', undefined, undefined, undefined],
+  },
+  {
+    id: 'p8', name: 'Noah Pearson', stageIndex: 1, status: 'declined', modality: 'Hormone / HRT',
+    coordinator: 'Coord. Beto', source: 'Ad spend', createdAt: '2026-05-22',
+    nextAppt: undefined, revenue: 0, phone: '(305) 555-0134', email: 'noah.p@example.com',
+    stageDates: ['2026-05-22', '2026-05-24', undefined, undefined, undefined, undefined],
+  },
+  {
+    id: 'p9', name: 'Isabella Reed', stageIndex: 5, status: 'active', modality: 'IV Therapy',
+    coordinator: 'Coord. Nora', source: 'Referral', createdAt: '2026-01-15',
+    nextAppt: '2026-06-07', revenue: 5_120, phone: '(305) 555-0155', email: 'bella.r@example.com',
+    stageDates: ['2026-01-15', '2026-01-16', '2026-01-19', '2026-01-23', '2026-01-30', '2026-02-14'],
+  },
+  {
+    id: 'p10', name: 'Ethan Brooks', stageIndex: 4, status: 'on-track', modality: 'Peptides',
+    coordinator: 'Coord. Lucia', source: 'Instagram', createdAt: '2026-05-18',
+    nextAppt: '2026-06-10', revenue: 980, phone: '(305) 555-0166', email: 'ethan.b@example.com',
+    stageDates: ['2026-05-18', '2026-05-19', '2026-05-23', '2026-05-27', '2026-06-01', undefined],
+  },
+  {
+    id: 'p11', name: 'Mia Coleman', stageIndex: 3, status: 'on-track', modality: 'Aesthetics',
+    coordinator: 'Coord. Beto', source: 'Referral', createdAt: '2026-05-30',
+    nextAppt: '2026-06-08', revenue: 260, phone: '(305) 555-0111', email: 'mia.c@example.com',
+    stageDates: ['2026-05-30', '2026-05-31', '2026-06-02', '2026-06-04', undefined, undefined],
+  },
+  {
+    id: 'p12', name: 'Lucas Ward', stageIndex: 0, status: 'on-track', modality: 'EBOO',
+    coordinator: 'Coord. Nora', source: 'EBOO landing page', createdAt: '2026-06-03',
+    nextAppt: undefined, revenue: 0, phone: '(305) 555-0148', email: 'lucas.w@example.com',
+    stageDates: ['2026-06-03', undefined, undefined, undefined, undefined, undefined],
+  },
+]
+
+export function getPatients(): PatientRecord[] {
+  return PATIENTS
 }
 
 // New-patient pipeline status (for kanban-style cards)

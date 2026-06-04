@@ -109,6 +109,32 @@ export interface TodayEmployee {
   status: 'ahead' | 'on-track' | 'behind' | 'off'
 }
 
+/** A single patient's position in the lifecycle, for the detail view. */
+export type PatientStatus = 'on-track' | 'active' | 'waitlist' | 'declined'
+
+export interface PatientRecord {
+  id: string
+  name: string
+  /** furthest stage reached, index into PATIENT_STAGES */
+  stageIndex: number
+  status: PatientStatus
+  modality: string
+  /** assigned coordinator / owner */
+  coordinator: string
+  /** where the lead came from */
+  source: string
+  /** ISO date the lead entered the pipeline */
+  createdAt: string
+  /** ISO date of the next scheduled appointment, if any */
+  nextAppt?: string
+  /** revenue to date */
+  revenue: number
+  phone: string
+  email: string
+  /** date reached for each stage (aligned to PATIENT_STAGES; undefined = not reached) */
+  stageDates: (string | undefined)[]
+}
+
 export interface ModalityBreakdown {
   modality: string
   patients: number
