@@ -85,8 +85,8 @@ export default function Occupancy() {
                 domain={[0, 100]}
                 tickFormatter={(v) => `${v}%`}
               />
-              <Tooltip formatter={(v: number) => `${v}%`} />
-              <Bar dataKey="pct" radius={[6, 6, 0, 0]} barSize={22}>
+              <Tooltip formatter={(v: number) => [`${v}%`, 'Occupancy']} />
+              <Bar dataKey="pct" name="Occupancy" radius={[6, 6, 0, 0]} barSize={22}>
                 {hourly.map((h, i) => (
                   <Cell key={i} fill={pctColor(h.pct)} />
                 ))}

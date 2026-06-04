@@ -611,7 +611,7 @@ export function getTodayHourly(): { hour: string; arrivals: number; revenue: num
   return shape.map((arrivals, i) => {
     const hour24 = CLINIC_OPEN + i
     const past = hour24 < nh
-    const label = `${((hour24 + 11) % 12) + 1}${hour24 < 12 ? 'a' : 'p'}`
+    const label = `${((hour24 + 11) % 12) + 1}${hour24 < 12 ? 'am' : 'pm'}`
     return {
       hour: label,
       arrivals: past ? arrivals : 0,
@@ -684,7 +684,7 @@ export function getOccupancy(): OccupancyUnit[] {
 
 // Occupancy across the day (simple heatmap)
 export function getHourlyOccupancy(): { hour: string; pct: number }[] {
-  const hours = ['8a', '9a', '10a', '11a', '12p', '1p', '2p', '3p', '4p', '5p', '6p']
+  const hours = ['8am', '9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm']
   return hours.map((hour, i) => ({
     hour,
     pct: Math.round(45 + 50 * Math.abs(Math.sin((i + 1) / 2)) - seeded(i, 3) * 10),
