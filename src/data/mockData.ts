@@ -964,15 +964,79 @@ export function getBillingTrend(): { label: string; billed: number; collected: n
 // -----------------------------------------------------------------------------
 // MARKETING
 // -----------------------------------------------------------------------------
-export function getMarketingKpis(): Kpi[] {
-  return [
-    { id: 'followers', label: 'Total followers', value: 48_200, format: 'number', deltaPct: 3.4, trend: 'up', hint: 'Across all social channels' },
-    { id: 'new-followers', label: 'New followers', value: 1_640, format: 'number', deltaPct: 12.0, trend: 'up', hint: 'This period' },
-    { id: 'web-sessions', label: 'Website sessions', value: 21_400, format: 'number', deltaPct: 8.0, trend: 'up', hint: 'Google Analytics' },
-    { id: 'emails-sent', label: 'Emails sent', value: 18_900, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Mailchimp campaigns' },
-    { id: 'open-rate', label: 'Email open rate', value: 38, format: 'percent', deltaPct: 2.0, trend: 'up', hint: 'Avg across campaigns' },
-    { id: 'mktg-leads', label: 'Leads from marketing', value: 286, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'Attributed to campaigns' },
-  ]
+export type MarketingChannelKey = 'all' | 'web' | 'instagram' | 'facebook' | 'email'
+
+export const MARKETING_CHANNEL_LABELS: Record<MarketingChannelKey, string> = {
+  all: 'All channels',
+  web: 'Web',
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  email: 'Email',
+}
+
+export function getMarketingKpis(channel: MarketingChannelKey = 'all'): Kpi[] {
+  switch (channel) {
+    case 'instagram':
+      return [
+        { id: 'ig-followers', label: 'Followers', value: 24_800, format: 'number', deltaPct: 4.1, trend: 'up', hint: 'Instagram audience' },
+        { id: 'ig-new', label: 'New followers', value: 980, format: 'number', deltaPct: 14.0, trend: 'up', hint: 'This period' },
+        { id: 'ig-eng', label: 'Engagement rate', value: 4.6, format: 'percent', deltaPct: 0.4, trend: 'up', hint: 'Likes + comments / reach' },
+        { id: 'ig-impr', label: 'Impressions', value: 142_000, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'Total reach' },
+        { id: 'ig-posts', label: 'Posts', value: 38, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Published this period' },
+        { id: 'ig-leads', label: 'Leads', value: 96, format: 'number', deltaPct: 11.0, trend: 'up', hint: 'Attributed to Instagram' },
+      ]
+    case 'facebook':
+      return [
+        { id: 'fb-followers', label: 'Followers', value: 14_200, format: 'number', deltaPct: 2.0, trend: 'up', hint: 'Facebook audience' },
+        { id: 'fb-new', label: 'New followers', value: 410, format: 'number', deltaPct: 6.0, trend: 'up', hint: 'This period' },
+        { id: 'fb-eng', label: 'Engagement rate', value: 2.1, format: 'percent', deltaPct: -0.2, trend: 'down', hint: 'Reactions + comments / reach' },
+        { id: 'fb-impr', label: 'Impressions', value: 88_000, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Total reach' },
+        { id: 'fb-posts', label: 'Posts', value: 24, format: 'number', deltaPct: 0, trend: 'flat', hint: 'Published this period' },
+        { id: 'fb-leads', label: 'Leads', value: 64, format: 'number', deltaPct: 7.0, trend: 'up', hint: 'Attributed to Facebook' },
+      ]
+    case 'web':
+      return [
+        { id: 'web-sessions', label: 'Sessions', value: 21_400, format: 'number', deltaPct: 8.0, trend: 'up', hint: 'Google Analytics' },
+        { id: 'web-users', label: 'Users', value: 16_800, format: 'number', deltaPct: 7.0, trend: 'up', hint: 'Unique visitors' },
+        { id: 'web-bounce', label: 'Bounce rate', value: 42, format: 'percent', deltaPct: -2.0, trend: 'down', lowerIsBetter: true, hint: 'Single-page sessions' },
+        { id: 'web-dur', label: 'Avg session', value: 2.4, format: 'minutes', deltaPct: 3.0, trend: 'up', hint: 'Time on site' },
+        { id: 'web-conv', label: 'Conversions', value: 312, format: 'number', deltaPct: 10.0, trend: 'up', hint: 'Form / booking submits' },
+        { id: 'web-leads', label: 'Leads', value: 78, format: 'number', deltaPct: 6.0, trend: 'up', hint: 'Attributed to web' },
+      ]
+    case 'email':
+      return [
+        { id: 'em-sent', label: 'Emails sent', value: 18_900, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Mailchimp campaigns' },
+        { id: 'em-open', label: 'Open rate', value: 38, format: 'percent', deltaPct: 2.0, trend: 'up', hint: 'Avg across campaigns' },
+        { id: 'em-click', label: 'Click rate', value: 6.2, format: 'percent', deltaPct: 0.6, trend: 'up', hint: 'Avg across campaigns' },
+        { id: 'em-leads', label: 'Leads', value: 215, format: 'number', deltaPct: 8.0, trend: 'up', hint: 'Attributed to email' },
+      ]
+    default:
+      return [
+        { id: 'followers', label: 'Total followers', value: 48_200, format: 'number', deltaPct: 3.4, trend: 'up', hint: 'Across all social channels' },
+        { id: 'new-followers', label: 'New followers', value: 1_640, format: 'number', deltaPct: 12.0, trend: 'up', hint: 'This period' },
+        { id: 'web-sessions', label: 'Website sessions', value: 21_400, format: 'number', deltaPct: 8.0, trend: 'up', hint: 'Google Analytics' },
+        { id: 'emails-sent', label: 'Emails sent', value: 18_900, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Mailchimp campaigns' },
+        { id: 'open-rate', label: 'Email open rate', value: 38, format: 'percent', deltaPct: 2.0, trend: 'up', hint: 'Avg across campaigns' },
+        { id: 'mktg-leads', label: 'Leads from marketing', value: 286, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'Attributed to campaigns' },
+      ]
+  }
+}
+
+/** Monthly trend of the channel's primary metric. */
+export function getChannelTrend(channel: MarketingChannelKey = 'all'): {
+  metric: string
+  points: { label: string; value: number }[]
+} {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+  const series: Record<MarketingChannelKey, { metric: string; values: number[] }> = {
+    all: { metric: 'Leads', values: [210, 228, 241, 256, 272, 286] },
+    instagram: { metric: 'Followers', values: [21_800, 22_500, 23_100, 23_700, 24_200, 24_800] },
+    facebook: { metric: 'Followers', values: [13_200, 13_500, 13_700, 13_900, 14_050, 14_200] },
+    web: { metric: 'Sessions', values: [16_800, 17_500, 18_200, 19_100, 20_200, 21_400] },
+    email: { metric: 'Emails sent', values: [12_400, 13_800, 15_200, 16_100, 17_800, 18_900] },
+  }
+  const s = series[channel]
+  return { metric: s.metric, points: months.map((label, i) => ({ label, value: s.values[i] })) }
 }
 
 export function getMarketingChannels(): MarketingChannel[] {
