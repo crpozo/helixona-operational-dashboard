@@ -19,12 +19,13 @@ import type { PaymentType } from '../types'
 import {
   getAlerts,
   getExecutiveKpis,
+  getGoals,
   getModalityBreakdown,
   getPatientFunnel,
   getRevenueTrend,
 } from '../data/mockData'
 import { CATEGORICAL, COLORS } from '../lib/colors'
-import { formatCompact } from '../lib/format'
+import { formatCompact, formatValue } from '../lib/format'
 
 interface Props {
   scale: number
@@ -42,6 +43,7 @@ export default function Overview({ scale, payment }: Props) {
   const revenue = getRevenueTrend(payment)
   const funnel = getPatientFunnel(scale)
   const modalities = getModalityBreakdown(scale, payment)
+  const goals = getGoals()
   const [dismissed, setDismissed] = useState<string[]>([])
   const alerts = getAlerts().filter((a) => !dismissed.includes(a.id))
 
@@ -178,6 +180,33 @@ export default function Overview({ scale, payment }: Props) {
           </ResponsiveContainer>
         </Card>
       </div>
+
+      {/* Goals — these drive the alerts above */}
+      <Card title="Goals" subtitle="Targets that trigger the alerts">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {goals.map((g) => {
+            const breached = g.lowerIsBetter ? g.value > g.target : g.value < g.target
+            const pct = Math.min(100, Math.round((g.value / g.target) * 100))
+            return (
+              <div key={g.id} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-600">{g.label}</span>
+                  <span className={`text-xs font-semibold ${breached ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {breached ? 'Off target' : 'On track'}
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div className={`h-full rounded-full ${breached ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${pct}%` }} />
+                </div>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  {formatValue(g.value, g.format)} / target {formatValue(g.target, g.format)}
+                  {g.lowerIsBetter ? ' (lower is better)' : ''}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      </Card>
     </div>
   )
 }

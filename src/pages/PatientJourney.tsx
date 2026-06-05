@@ -82,6 +82,13 @@ function PatientDetail({ p }: { p: PatientRecord }) {
     <div className="space-y-4 px-2 py-3">
       <StageTracker p={p} />
 
+      {p.status === 'declined' && (
+        <div className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm">
+          <span className="font-semibold text-rose-700">Declined · </span>
+          <span className="text-rose-700">{p.declineReason ?? 'No reason recorded'}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: 'Modality', value: p.modality },
@@ -215,6 +222,9 @@ export default function PatientJourney() {
                         <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusChip(p)}`}>
                           {currentLabel(p)}
                         </span>
+                        {p.status === 'declined' && p.declineReason && (
+                          <p className="mt-1 max-w-[200px] text-[11px] leading-tight text-rose-600">{p.declineReason}</p>
+                        )}
                       </td>
                       <td className="py-2.5 text-slate-600">{p.modality}</td>
                       <td className="py-2.5 text-slate-600">{p.coordinator}</td>

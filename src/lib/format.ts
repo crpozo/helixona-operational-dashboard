@@ -14,8 +14,10 @@ export function formatValue(value: number, format: Kpi['format']): string {
       return currency.format(value)
     case 'percent':
       return `${number.format(Math.round(value))}%`
-    case 'minutes':
+    case 'days':
       return `${value.toFixed(1)} d`
+    case 'minutes':
+      return `${value.toFixed(1)} min`
     case 'number':
     default:
       return number.format(Math.round(value))

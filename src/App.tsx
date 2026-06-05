@@ -4,11 +4,13 @@ import Header from './components/Header'
 import Today from './pages/Today'
 import Overview from './pages/Overview'
 import Revenue from './pages/Revenue'
+import Billing from './pages/Billing'
 import Patients from './pages/Patients'
 import PatientJourney from './pages/PatientJourney'
+import Marketing from './pages/Marketing'
 import Team from './pages/Team'
 import Employees from './pages/Employees'
-import Occupancy from './pages/Occupancy'
+import Treatments from './pages/Treatments'
 import type { PaymentType, Period } from './types'
 import { formatPeriodLabel, getScale } from './data/mockData'
 
@@ -18,12 +20,14 @@ const PAGE_META: Record<
 > = {
   today: { title: 'Today', subtitle: 'Live daily snapshot of the operation', period: false, payment: false },
   overview: { title: 'Executive overview', subtitle: 'The whole operation at a glance', period: true, payment: true },
-  revenue: { title: 'Revenue', subtitle: 'Collections, payment mix, and ticket by modality', period: true, payment: true },
+  revenue: { title: 'Revenue', subtitle: 'Estimated vs collected, mix, and ticket by modality', period: true, payment: true },
+  billing: { title: 'Insurance & Billing', subtitle: 'Claims, denials, and what payers owe', period: false, payment: false },
   patients: { title: 'Patients', subtitle: 'Funnel, new-patient pipeline, and modalities', period: true, payment: true },
   journey: { title: 'Patient Journey', subtitle: 'Where each patient is in the lifecycle', period: false, payment: false },
+  marketing: { title: 'Marketing', subtitle: 'Channels, followers, web, and email campaigns', period: false, payment: false },
   team: { title: 'Team & Roles', subtitle: 'KPIs by role and per-person performance', period: true, payment: false },
   employees: { title: 'Employees', subtitle: 'Per-employee metrics, revenue, and productivity', period: true, payment: true },
-  occupancy: { title: 'Occupancy', subtitle: 'Unit usage and the daily curve', period: false, payment: false },
+  treatments: { title: 'Treatments', subtitle: 'Revenue or occupancy by treatment, and unit usage', period: false, payment: false },
 }
 
 export default function App() {
@@ -56,11 +60,13 @@ export default function App() {
           {page === 'today' && <Today />}
           {page === 'overview' && <Overview scale={scale} payment={payment} />}
           {page === 'revenue' && <Revenue scale={scale} payment={payment} />}
+          {page === 'billing' && <Billing />}
           {page === 'patients' && <Patients scale={scale} payment={payment} />}
           {page === 'journey' && <PatientJourney />}
+          {page === 'marketing' && <Marketing />}
           {page === 'team' && <Team scale={scale} />}
           {page === 'employees' && <Employees scale={scale} payment={payment} />}
-          {page === 'occupancy' && <Occupancy />}
+          {page === 'treatments' && <Treatments />}
         </main>
       </div>
     </div>

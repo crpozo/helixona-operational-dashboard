@@ -15,12 +15,17 @@
 
 import type {
   Alert,
+  DenialCategory,
+  EmailCampaign,
   Employee,
   FunnelStage,
+  Goal,
   Kpi,
+  MarketingChannel,
   ModalityBreakdown,
   OccupancyUnit,
   PatientRecord,
+  PayerClaims,
   PaymentType,
   Period,
   RoleMetric,
@@ -28,6 +33,7 @@ import type {
   Timeframe,
   TimePoint,
   TodayEmployee,
+  Treatment,
 } from '../types'
 
 export const CLINIC_NAME = 'Helixona Wellness'
@@ -159,7 +165,7 @@ export function getExecutiveKpis(scale: number, payment: PaymentType): Kpi[] {
       id: 'avg-wait',
       label: 'Wait for next appt.',
       value: 4.6,
-      format: 'minutes',
+      format: 'days',
       deltaPct: -6.0,
       trend: 'down',
       lowerIsBetter: true,
@@ -186,8 +192,14 @@ export function getExecutiveKpis(scale: number, payment: PaymentType): Kpi[] {
   ]
 }
 
-// Revenue month over month (cash vs insurance)
-export function getRevenueTrend(payment: PaymentType): TimePoint[] {
+export type RevenueMode = 'estimated' | 'collected'
+
+// Collection factors: cash is mostly collected; insurance pays the allowable amount.
+const COLLECT_FACTOR = { cash: 0.96, insurance: 0.58 }
+
+// Revenue month over month (cash vs insurance).
+// `estimated` = gross billed; `collected` = actually received.
+export function getRevenueTrend(payment: PaymentType, mode: RevenueMode = 'estimated'): TimePoint[] {
   const base: TimePoint[] = [
     { label: 'Jan', cash: 142_000, insurance: 118_000 },
     { label: 'Feb', cash: 151_000, insurance: 121_500 },
@@ -197,11 +209,33 @@ export function getRevenueTrend(payment: PaymentType): TimePoint[] {
     { label: 'Jun', cash: 184_500, insurance: 142_300 },
   ]
   const pm = paymentMultiplier(payment)
+  const cf = mode === 'collected' ? COLLECT_FACTOR : { cash: 1, insurance: 1 }
   return base.map((p) => ({
     label: p.label,
-    cash: Math.round(p.cash * pm.cash),
-    insurance: Math.round(p.insurance * pm.insurance),
+    cash: Math.round(p.cash * pm.cash * cf.cash),
+    insurance: Math.round(p.insurance * pm.insurance * cf.insurance),
   }))
+}
+
+/** Estimated (gross/billed) vs collected revenue for the current month. */
+export function getRevenueSummary(payment: PaymentType): {
+  estimated: number
+  collected: number
+  collectionRate: number
+  collectedToday: number
+} {
+  const estTrend = getRevenueTrend(payment, 'estimated')
+  const colTrend = getRevenueTrend(payment, 'collected')
+  const est = estTrend[estTrend.length - 1]
+  const col = colTrend[colTrend.length - 1]
+  const estimated = est.cash + est.insurance
+  const collected = col.cash + col.insurance
+  return {
+    estimated,
+    collected,
+    collectionRate: estimated ? Math.round((collected / estimated) * 100) : 0,
+    collectedToday: Math.round(collected / 30),
+  }
 }
 
 // Funnel: lead -> onboarding -> patient -> first booking
@@ -241,13 +275,16 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'frontDesk',
       name: 'Front Desk',
-      summary: 'Collections, cash sales, and call handling (inbound/outbound).',
+      summary: 'Patient collections (copays/deductibles), cash sales, and call handling.',
       source: 'ECW + 8x8',
       headcount: 4,
       metrics: [
-        { label: 'Insurance collections', value: r(98_400), format: 'currency', target: r(110_000) },
+        { label: 'Patient insurance collection', value: r(38_600), format: 'currency', target: r(42_000) },
         { label: 'Cash service sales', value: r(42_700), format: 'currency', target: r(45_000) },
+        { label: 'Inbound calls', value: r(2_140), format: 'number' },
         { label: 'Calls answered', value: r(1_840), format: 'number' },
+        { label: '% inbound answered', value: 86, format: 'percent', target: 90 },
+        { label: 'Avg call duration', value: 4.2, format: 'minutes' },
         { label: 'Outbound calls', value: r(960), format: 'number', target: r(1_200) },
       ],
       leaderboard: [
@@ -259,11 +296,13 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'ma',
       name: 'Medical Assistants',
-      summary: 'Patient inquiries, vitals, procedures, and refills.',
-      source: 'ECW',
+      summary: 'Calls, SMS, vitals, procedures, and refills.',
+      source: 'ECW + 8x8',
       headcount: 5,
       metrics: [
-        { label: 'Patient inquiries', value: r(1_120), format: 'number' },
+        { label: 'Inbound calls', value: r(740), format: 'number' },
+        { label: 'Outbound calls', value: r(610), format: 'number' },
+        { label: 'SMS received', value: r(1_280), format: 'number' },
         { label: 'Vitals taken', value: r(2_310), format: 'number' },
         { label: 'Procedures', value: r(1_480), format: 'number' },
         { label: 'Rx refills', value: r(640), format: 'number' },
@@ -277,10 +316,12 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'pcc',
       name: 'PCC · Patient Care Coord.',
-      summary: 'POC appointments, follow-ups, cash sales, and POC penetration.',
-      source: 'ECW + Billing',
+      summary: 'Calls, POC appointments, follow-ups, cash sales, and POC penetration.',
+      source: 'ECW + 8x8 + Billing',
       headcount: 3,
       metrics: [
+        { label: 'Inbound calls', value: r(820), format: 'number' },
+        { label: 'Outbound calls', value: r(640), format: 'number' },
         { label: 'POC appointments', value: r(412), format: 'number' },
         { label: 'Follow-up appointments', value: r(688), format: 'number' },
         { label: 'Cash service sales', value: r(36_900), format: 'currency' },
@@ -296,14 +337,16 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'nurse',
       name: 'Nurses',
-      summary: 'EBOO, sticks, misses, EBOO booked, and upsells.',
+      summary: 'EBOOs (performed & booked), IVs, stars, misses, and upsells.',
       source: 'ECW',
       headcount: 4,
       metrics: [
         { label: 'EBOOs performed', value: r(188), format: 'number' },
-        { label: 'Sticks', value: r(1_620), format: 'number' },
-        { label: 'Misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
         { label: 'EBOO booked', value: r(212), format: 'number' },
+        { label: 'IVs administered', value: r(1_540), format: 'number' },
+        { label: 'Stars', value: r(1_620), format: 'number' },
+        { label: 'Misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
+        { label: 'Cost of misses', value: r(74) * 3.2, format: 'currency', lowerIsBetter: true },
         { label: 'Upsells ($ vol.)', value: r(28_400), format: 'currency' },
       ],
       leaderboard: [
@@ -321,9 +364,10 @@ export function getRoles(scale: number): Role[] {
       metrics: [
         { label: 'Starts', value: r(1_340), format: 'number' },
         { label: 'Misses', value: r(96), format: 'number', lowerIsBetter: true, target: r(60) },
+        { label: 'Cost of misses', value: r(96) * 3.2, format: 'currency', lowerIsBetter: true },
+        { label: 'IVs administered', value: r(1_180), format: 'number' },
         { label: 'Appointments booked', value: r(880), format: 'number' },
         { label: 'Upsells', value: r(312), format: 'number' },
-        { label: 'Cost of misses', value: r(96) * 3.2, format: 'currency', lowerIsBetter: true },
       ],
       leaderboard: [
         { name: 'Medic Tony', metric: r(298), format: 'number' },
@@ -415,6 +459,7 @@ const PATIENTS: PatientRecord[] = [
     coordinator: 'Coord. Beto', source: 'Ad spend', createdAt: '2026-05-22',
     nextAppt: undefined, revenue: 0, phone: '(305) 555-0134', email: 'noah.p@example.com',
     stageDates: ['2026-05-22', '2026-05-24', undefined, undefined, undefined, undefined],
+    declineReason: 'Cost — chose not to proceed after pricing',
   },
   {
     id: 'p9', name: 'Isabella Reed', stageIndex: 5, status: 'active', modality: 'IV Therapy',
@@ -440,10 +485,36 @@ const PATIENTS: PatientRecord[] = [
     nextAppt: undefined, revenue: 0, phone: '(305) 555-0148', email: 'lucas.w@example.com',
     stageDates: ['2026-06-03', undefined, undefined, undefined, undefined, undefined],
   },
+  {
+    id: 'p13', name: 'Grace Sullivan', stageIndex: 2, status: 'declined', modality: 'IV Therapy',
+    coordinator: 'Coord. Lucia', source: 'Ad spend', createdAt: '2026-05-19',
+    nextAppt: undefined, revenue: 0, phone: '(305) 555-0172', email: 'grace.s@example.com',
+    stageDates: ['2026-05-19', '2026-05-20', '2026-05-23', undefined, undefined, undefined],
+    declineReason: 'Insurance not accepted (out-of-network)',
+  },
+  {
+    id: 'p14', name: 'Henry Diaz', stageIndex: 1, status: 'declined', modality: 'Peptides',
+    coordinator: 'Coord. Beto', source: 'Instagram', createdAt: '2026-05-21',
+    nextAppt: undefined, revenue: 0, phone: '(305) 555-0193', email: 'henry.d@example.com',
+    stageDates: ['2026-05-21', '2026-05-23', undefined, undefined, undefined, undefined],
+    declineReason: 'Unresponsive after 3 outreach attempts',
+  },
 ]
 
 export function getPatients(): PatientRecord[] {
   return PATIENTS
+}
+
+// New-patient team operational status (waitlist, next slot, weekly review).
+export function getNewPatientTeam() {
+  return {
+    nextNewPatientSlot: '2026-06-06',
+    waitlist: 58,
+    lastReview: '2026-05-29',
+    nextReview: '2026-06-05',
+    reviewers: 'Tom & Cassandra',
+    reviewStatus: 'Pending' as 'Pending' | 'Committed',
+  }
 }
 
 // New-patient pipeline status (for kanban-style cards)
@@ -473,21 +544,27 @@ interface EmployeeSeed {
 const EMPLOYEE_SEEDS: EmployeeSeed[] = [
   // Front Desk
   { id: 'e1', name: 'Maria Garcia', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 94, revenue: 34_200, metrics: [
-    { label: 'Insurance collections', value: 34_200, format: 'currency' },
-    { label: 'Cash sales', value: 12_400, format: 'currency' },
+    { label: 'Patient collection', value: 14_200, format: 'currency' },
+    { label: 'Inbound calls', value: 712, format: 'number' },
     { label: 'Calls answered', value: 612, format: 'number' },
+    { label: '% answered', value: 86, format: 'percent' },
+    { label: 'Avg call duration', value: 4.1, format: 'minutes' },
     { label: 'Outbound calls', value: 318, format: 'number' },
   ] },
   { id: 'e2', name: 'Luis Ramirez', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 88, revenue: 31_800, metrics: [
-    { label: 'Insurance collections', value: 31_800, format: 'currency' },
-    { label: 'Cash sales', value: 9_900, format: 'currency' },
+    { label: 'Patient collection', value: 12_100, format: 'currency' },
+    { label: 'Inbound calls', value: 648, format: 'number' },
     { label: 'Calls answered', value: 540, format: 'number' },
+    { label: '% answered', value: 83, format: 'percent' },
+    { label: 'Avg call duration', value: 4.6, format: 'minutes' },
     { label: 'Outbound calls', value: 286, format: 'number' },
   ] },
   { id: 'e3', name: 'Ana Torres', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 79, revenue: 18_900, metrics: [
-    { label: 'Insurance collections', value: 18_900, format: 'currency' },
-    { label: 'Cash sales', value: 7_300, format: 'currency' },
+    { label: 'Patient collection', value: 8_400, format: 'currency' },
+    { label: 'Inbound calls', value: 540, format: 'number' },
     { label: 'Calls answered', value: 421, format: 'number' },
+    { label: '% answered', value: 78, format: 'percent' },
+    { label: 'Avg call duration', value: 5.2, format: 'minutes' },
     { label: 'Outbound calls', value: 196, format: 'number' },
   ] },
   // Medical Assistants
@@ -786,33 +863,147 @@ export function getHourlyOccupancy(): { hour: string; pct: number }[] {
 }
 
 // -----------------------------------------------------------------------------
-// ALERTS (actionable insights)
+// GOALS — targets that drive the alerts
+// -----------------------------------------------------------------------------
+export function getGoals(): Goal[] {
+  return [
+    { id: 'g1', label: 'POC penetration', area: 'PCC', value: 64, target: 70, format: 'percent' },
+    { id: 'g2', label: 'Monthly revenue', area: 'Revenue', value: 326_800, target: 340_000, format: 'currency' },
+    { id: 'g3', label: 'Medic misses', area: 'Medics', value: 96, target: 60, format: 'number', lowerIsBetter: true },
+    { id: 'g4', label: 'Outbound calls', area: 'Front Desk', value: 960, target: 1_200, format: 'number' },
+    { id: 'g5', label: 'Claim denial rate', area: 'Billing', value: 11, target: 8, format: 'percent', lowerIsBetter: true },
+    { id: 'g6', label: 'Unit occupancy', area: 'Treatments', value: 82, target: 80, format: 'percent' },
+    { id: 'g7', label: 'New patients', area: 'Growth', value: 96, target: 90, format: 'number' },
+  ]
+}
+
+/** True when a goal is currently being missed. */
+function goalBreached(g: Goal): boolean {
+  return g.lowerIsBetter ? g.value > g.target : g.value < g.target
+}
+
+// -----------------------------------------------------------------------------
+// ALERTS — derived from goals that are off-target
 // -----------------------------------------------------------------------------
 export function getAlerts(): Alert[] {
+  const fmt = (v: number, f: Goal['format']) =>
+    f === 'currency' ? `$${v.toLocaleString()}` : f === 'percent' ? `${v}%` : v.toLocaleString()
+
+  const fromGoals: Alert[] = getGoals()
+    .filter(goalBreached)
+    .map((g) => {
+      const gap = Math.abs(g.value - g.target)
+      const severity: Alert['severity'] =
+        gap / Math.max(1, g.target) >= 0.25 ? 'critical' : 'warning'
+      return {
+        id: g.id,
+        severity,
+        area: g.area,
+        message: `${g.label}: ${fmt(g.value, g.format)} vs target ${fmt(g.target, g.format)}.`,
+      }
+    })
+
   return [
+    ...fromGoals,
     {
-      id: 'a1',
-      severity: 'critical',
-      message: 'Medics: misses above target (96 vs 60). Estimated cost $307.',
-      area: 'Medics',
-    },
-    {
-      id: 'a2',
-      severity: 'warning',
-      message: 'PCC: POC penetration at 64%, below the 70% target.',
-      area: 'PCC',
-    },
-    {
-      id: 'a3',
-      severity: 'warning',
-      message: 'Front Desk: outbound calls at 960 vs target of 1,200.',
-      area: 'Front Desk',
-    },
-    {
-      id: 'a4',
+      id: 'info-eboo',
       severity: 'info',
-      message: 'EBOO needs its own landing page — 212 booked, high demand.',
       area: 'Growth',
+      message: 'EBOO needs its own landing page — 212 booked, high demand.',
     },
+  ]
+}
+
+// -----------------------------------------------------------------------------
+// INSURANCE / BILLING
+// -----------------------------------------------------------------------------
+export function getInsuranceKpis(): Kpi[] {
+  return [
+    { id: 'billed-yesterday', label: 'Billed yesterday', value: 84_200, format: 'currency', deltaPct: 6.0, trend: 'up', hint: 'Claims submitted yesterday' },
+    { id: 'claims-yesterday', label: 'Claims sent yesterday', value: 47, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Number of claims submitted' },
+    { id: 'days-to-submit', label: 'Avg days to submit', value: 1.8, format: 'days', deltaPct: -8.0, trend: 'down', lowerIsBetter: true, hint: 'Encounter → claim sent' },
+    { id: 'days-to-pay', label: 'Avg days to pay', value: 38, format: 'days', deltaPct: -3.0, trend: 'down', lowerIsBetter: true, hint: 'Weighted across payers' },
+    { id: 'denial-rate', label: 'Denial rate', value: 11, format: 'percent', deltaPct: 1.5, trend: 'up', lowerIsBetter: true, hint: '% of claims denied' },
+    { id: 'outstanding-ar', label: 'Outstanding A/R', value: 412_900, format: 'currency', deltaPct: 2.0, trend: 'up', lowerIsBetter: true, hint: 'Owed by insurers (billed)' },
+  ]
+}
+
+export function getClaimsByPayer(): PayerClaims[] {
+  return [
+    { payer: 'BlueShield', claims: 182, billed: 248_000, allowable: 152_000, paid: 121_000, outstanding: 127_000, avgDaysToPay: 182, denialRate: 9 },
+    { payer: 'Aetna', claims: 134, billed: 176_500, allowable: 110_300, paid: 92_400, outstanding: 84_100, avgDaysToPay: 46, denialRate: 12 },
+    { payer: 'Cigna', claims: 98, billed: 132_400, allowable: 82_900, paid: 70_100, outstanding: 62_300, avgDaysToPay: 39, denialRate: 8 },
+    { payer: 'UnitedHealthcare', claims: 121, billed: 158_900, allowable: 96_200, paid: 74_800, outstanding: 84_100, avgDaysToPay: 52, denialRate: 14 },
+    { payer: 'Medicare', claims: 156, billed: 121_300, allowable: 88_700, paid: 81_900, outstanding: 39_400, avgDaysToPay: 28, denialRate: 6 },
+    { payer: 'Humana', claims: 64, billed: 71_200, allowable: 44_100, paid: 35_200, outstanding: 36_000, avgDaysToPay: 41, denialRate: 10 },
+  ]
+}
+
+export function getDenials(): DenialCategory[] {
+  return [
+    { category: 'Office visits', denials: 18, delayDays: 22 },
+    { category: 'IVs', denials: 41, delayDays: 35 },
+    { category: 'Diagnostics', denials: 27, delayDays: 28 },
+    { category: 'Procedures', denials: 33, delayDays: 44 },
+    { category: 'Labs', denials: 15, delayDays: 19 },
+  ]
+}
+
+/** Billed vs collected by month (for month-over-month billing comparison). */
+export function getBillingTrend(): { label: string; billed: number; collected: number }[] {
+  return [
+    { label: 'Jan', billed: 232_000, collected: 168_000 },
+    { label: 'Feb', billed: 244_500, collected: 176_400 },
+    { label: 'Mar', billed: 261_900, collected: 188_900 },
+    { label: 'Apr', billed: 256_200, collected: 184_700 },
+    { label: 'May', billed: 278_700, collected: 199_300 },
+    { label: 'Jun', billed: 291_800, collected: 206_400 },
+  ]
+}
+
+// -----------------------------------------------------------------------------
+// MARKETING
+// -----------------------------------------------------------------------------
+export function getMarketingKpis(): Kpi[] {
+  return [
+    { id: 'followers', label: 'Total followers', value: 48_200, format: 'number', deltaPct: 3.4, trend: 'up', hint: 'Across all social channels' },
+    { id: 'new-followers', label: 'New followers', value: 1_640, format: 'number', deltaPct: 12.0, trend: 'up', hint: 'This period' },
+    { id: 'web-sessions', label: 'Website sessions', value: 21_400, format: 'number', deltaPct: 8.0, trend: 'up', hint: 'Google Analytics' },
+    { id: 'emails-sent', label: 'Emails sent', value: 18_900, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Mailchimp campaigns' },
+    { id: 'open-rate', label: 'Email open rate', value: 38, format: 'percent', deltaPct: 2.0, trend: 'up', hint: 'Avg across campaigns' },
+    { id: 'mktg-leads', label: 'Leads from marketing', value: 286, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'Attributed to campaigns' },
+  ]
+}
+
+export function getMarketingChannels(): MarketingChannel[] {
+  return [
+    { channel: 'Instagram', followers: 24_800, leads: 96 },
+    { channel: 'Facebook', followers: 14_200, leads: 64 },
+    { channel: 'Google / SEO', followers: 0, leads: 78 },
+    { channel: 'Email', followers: 9_200, leads: 38 },
+    { channel: 'Referral', followers: 0, leads: 10 },
+  ]
+}
+
+export function getEmailCampaigns(): EmailCampaign[] {
+  return [
+    { name: 'EBOO awareness', sent: 6_200, openRate: 42, clickRate: 7.1, leads: 88 },
+    { name: 'June IV specials', sent: 5_400, openRate: 39, clickRate: 5.8, leads: 54 },
+    { name: 'HRT re-engagement', sent: 3_900, openRate: 34, clickRate: 4.2, leads: 31 },
+    { name: 'New patient welcome', sent: 3_400, openRate: 51, clickRate: 9.4, leads: 42 },
+  ]
+}
+
+// -----------------------------------------------------------------------------
+// TREATMENTS (occupancy or revenue by modality)
+// -----------------------------------------------------------------------------
+export function getTreatments(): Treatment[] {
+  return [
+    { name: 'IV Therapy', treatments: 540, occupancyPct: 84, revenue: 96_400 },
+    { name: 'EBOO', treatments: 188, occupancyPct: 92, revenue: 121_300 },
+    { name: 'Hormone / HRT', treatments: 224, occupancyPct: 71, revenue: 54_200 },
+    { name: 'Peptides', treatments: 142, occupancyPct: 63, revenue: 31_800 },
+    { name: 'Aesthetics', treatments: 186, occupancyPct: 68, revenue: 23_100 },
+    { name: 'Erchonia Laser', treatments: 74, occupancyPct: 49, revenue: 12_600 },
   ]
 }

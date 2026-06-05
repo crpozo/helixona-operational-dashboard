@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Bar,
   BarChart,
@@ -13,9 +14,13 @@ import {
 } from 'recharts'
 import { Download } from 'lucide-react'
 import Card from '../components/Card'
-import KpiCard from '../components/KpiCard'
 import type { PaymentType } from '../types'
-import { getExecutiveKpis, getModalityBreakdown, getRevenueTrend } from '../data/mockData'
+import {
+  getModalityBreakdown,
+  getRevenueSummary,
+  getRevenueTrend,
+  type RevenueMode,
+} from '../data/mockData'
 import { CATEGORICAL, COLORS } from '../lib/colors'
 import { formatCompact, formatValue } from '../lib/format'
 import { downloadCsv } from '../lib/csv'
@@ -26,10 +31,9 @@ interface Props {
 }
 
 export default function Revenue({ scale, payment }: Props) {
-  const kpis = getExecutiveKpis(scale, payment).filter((k) =>
-    ['revenue', 'rev-per-employee', 'rev-per-patient', 'ivs'].includes(k.id),
-  )
-  const trend = getRevenueTrend(payment)
+  const [mode, setMode] = useState<RevenueMode>('estimated')
+  const summary = getRevenueSummary(payment)
+  const trend = getRevenueTrend(payment, mode)
   const modalities = getModalityBreakdown(scale, payment)
 
   const totalCash = trend.reduce((s, p) => s + p.cash, 0)
@@ -39,38 +43,61 @@ export default function Revenue({ scale, payment }: Props) {
     { name: 'Insurance', value: totalIns, color: COLORS.insurance },
   ].filter((m) => m.value > 0)
 
+  const tiles = [
+    { label: 'Estimated revenue (gross)', value: summary.estimated, hint: 'Billed — bruto' },
+    { label: 'Collected', value: summary.collected, hint: 'Actually received' },
+    { label: 'Collection rate', value: summary.collectionRate, hint: 'Collected ÷ estimated', pct: true },
+    { label: 'Collected today', value: summary.collectedToday, hint: 'Earned today' },
+  ]
+
   const exportModalities = () =>
     downloadCsv(
       'revenue-by-modality.csv',
       ['Modality', 'Patients', 'Revenue', 'Revenue per patient'],
-      modalities.map((m) => [
-        m.modality,
-        m.patients,
-        m.revenue,
-        m.patients ? Math.round(m.revenue / m.patients) : 0,
-      ]),
+      modalities.map((m) => [m.modality, m.patients, m.revenue, m.patients ? Math.round(m.revenue / m.patients) : 0]),
     )
 
   return (
     <div className="space-y-6">
+      {/* Estimated vs collected summary */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
+        {tiles.map((t) => (
+          <div key={t.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">{t.label}</p>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-ink-900">
+              {t.pct ? `${t.value}%` : formatValue(t.value, 'currency')}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">{t.hint}</p>
+          </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card title="Monthly revenue" subtitle="Stacked cash + insurance" className="lg:col-span-2">
+        <Card
+          title="Monthly revenue"
+          subtitle={mode === 'estimated' ? 'Estimated / billed (gross)' : 'Collected (received)'}
+          className="lg:col-span-2"
+          action={
+            <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+              {(['estimated', 'collected'] as RevenueMode[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold capitalize transition ${
+                    mode === m ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          }
+        >
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={trend} margin={{ left: -16, right: 8, top: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `$${v / 1000}k`}
-              />
+              <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
               <Tooltip formatter={(v: number) => formatCompact(v, 'currency')} />
               <Legend iconType="circle" />
               <Bar dataKey="cash" name="Cash" stackId="r" fill={COLORS.cash} />
@@ -79,7 +106,7 @@ export default function Revenue({ scale, payment }: Props) {
           </ResponsiveContainer>
         </Card>
 
-        <Card title="Payment mix" subtitle="Cash vs Insurance">
+        <Card title="Payment mix" subtitle={`Cash vs Insurance · ${mode}`}>
           {mix.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={220}>
@@ -99,9 +126,7 @@ export default function Revenue({ scale, payment }: Props) {
                       <span className="h-2.5 w-2.5 rounded-full" style={{ background: m.color }} />
                       {m.name}
                     </span>
-                    <span className="font-semibold tabular-nums text-ink-900">
-                      {formatValue(m.value, 'currency')}
-                    </span>
+                    <span className="font-semibold tabular-nums text-ink-900">{formatValue(m.value, 'currency')}</span>
                   </div>
                 ))}
               </div>
@@ -144,19 +169,12 @@ export default function Revenue({ scale, payment }: Props) {
                   <tr key={m.modality} className="border-b border-slate-100 last:border-0">
                     <td className="py-2.5 font-medium text-ink-900">{m.modality}</td>
                     <td className="py-2.5 text-right tabular-nums text-slate-600">{m.patients.toLocaleString()}</td>
-                    <td className="py-2.5 text-right tabular-nums font-semibold text-ink-900">
-                      {formatValue(m.revenue, 'currency')}
-                    </td>
-                    <td className="py-2.5 text-right tabular-nums text-slate-600">
-                      {formatValue(m.patients ? m.revenue / m.patients : 0, 'currency')}
-                    </td>
+                    <td className="py-2.5 text-right tabular-nums font-semibold text-ink-900">{formatValue(m.revenue, 'currency')}</td>
+                    <td className="py-2.5 text-right tabular-nums text-slate-600">{formatValue(m.patients ? m.revenue / m.patients : 0, 'currency')}</td>
                     <td className="py-2.5 pl-4">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${share}%`, background: CATEGORICAL[i % CATEGORICAL.length] }}
-                          />
+                          <div className="h-full rounded-full" style={{ width: `${share}%`, background: CATEGORICAL[i % CATEGORICAL.length] }} />
                         </div>
                         <span className="w-8 text-right text-xs tabular-nums text-slate-500">{share}%</span>
                       </div>

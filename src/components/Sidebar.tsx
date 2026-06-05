@@ -1,11 +1,13 @@
 import {
   Activity,
-  CalendarClock,
   DollarSign,
+  FileText,
   LayoutDashboard,
+  Megaphone,
   Route,
   Stethoscope,
   Sun,
+  Syringe,
   UserCircle,
   Users,
 } from 'lucide-react'
@@ -14,22 +16,26 @@ import { CLINIC_NAME } from '../data/mockData'
 export type PageId =
   | 'today'
   | 'overview'
+  | 'revenue'
+  | 'billing'
   | 'patients'
   | 'journey'
-  | 'revenue'
+  | 'marketing'
   | 'team'
   | 'employees'
-  | 'occupancy'
+  | 'treatments'
 
 const NAV: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'today', label: 'Today', icon: Sun },
   { id: 'overview', label: 'Executive overview', icon: LayoutDashboard },
   { id: 'revenue', label: 'Revenue', icon: DollarSign },
+  { id: 'billing', label: 'Insurance & Billing', icon: FileText },
   { id: 'patients', label: 'Patients', icon: Users },
   { id: 'journey', label: 'Patient Journey', icon: Route },
+  { id: 'marketing', label: 'Marketing', icon: Megaphone },
   { id: 'team', label: 'Team & Roles', icon: Stethoscope },
   { id: 'employees', label: 'Employees', icon: UserCircle },
-  { id: 'occupancy', label: 'Occupancy', icon: CalendarClock },
+  { id: 'treatments', label: 'Treatments', icon: Syringe },
 ]
 
 interface Props {

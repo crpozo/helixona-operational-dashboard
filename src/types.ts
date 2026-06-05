@@ -24,7 +24,7 @@ export interface Kpi {
   label: string
   value: number
   /** presentation format for the value */
-  format: 'number' | 'currency' | 'percent' | 'minutes'
+  format: 'number' | 'currency' | 'percent' | 'minutes' | 'days'
   /** change vs previous period, in % */
   deltaPct: number
   trend: Trend
@@ -133,6 +133,61 @@ export interface PatientRecord {
   email: string
   /** date reached for each stage (aligned to PATIENT_STAGES; undefined = not reached) */
   stageDates: (string | undefined)[]
+  /** reason the patient was declined (only when status === 'declined') */
+  declineReason?: string
+}
+
+/** A measurable goal that drives the alerts. */
+export interface Goal {
+  id: string
+  label: string
+  area: string
+  value: number
+  target: number
+  format: 'number' | 'currency' | 'percent'
+  lowerIsBetter?: boolean
+}
+
+/** Insurance billing — one payer's claim aggregates. */
+export interface PayerClaims {
+  payer: string
+  claims: number
+  billed: number
+  allowable: number
+  paid: number
+  outstanding: number
+  /** average days the payer takes to pay */
+  avgDaysToPay: number
+  denialRate: number
+}
+
+export interface DenialCategory {
+  category: string
+  denials: number
+  delayDays: number
+}
+
+/** Marketing — one acquisition channel. */
+export interface MarketingChannel {
+  channel: string
+  followers: number
+  leads: number
+}
+
+export interface EmailCampaign {
+  name: string
+  sent: number
+  openRate: number
+  clickRate: number
+  leads: number
+}
+
+/** A treatment/modality with both occupancy and revenue, for the Treatments view. */
+export interface Treatment {
+  name: string
+  treatments: number
+  occupancyPct: number
+  revenue: number
 }
 
 export interface ModalityBreakdown {
