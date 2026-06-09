@@ -249,17 +249,51 @@ export function getPatientFunnel(scale: number): FunnelStage[] {
   ]
 }
 
+// -----------------------------------------------------------------------------
+// HELIXONA SERVICE CATALOG — real treatments & diagnostics (single source)
+// -----------------------------------------------------------------------------
+interface CatalogItem {
+  name: string
+  patients: number
+  treatments: number
+  occupancyPct: number
+  revenue: number
+}
+
+const SERVICE_CATALOG: CatalogItem[] = [
+  // Therapies
+  { name: 'IV Therapy', patients: 540, treatments: 1_540, occupancyPct: 84, revenue: 96_400 },
+  { name: 'EBOO', patients: 188, treatments: 212, occupancyPct: 92, revenue: 121_300 },
+  { name: 'Platelet-Rich Plasma (PRP)', patients: 64, treatments: 88, occupancyPct: 61, revenue: 78_200 },
+  { name: 'Erchonia Laser Therapy', patients: 142, treatments: 410, occupancyPct: 68, revenue: 31_800 },
+  { name: 'Neuromuscular Therapy', patients: 132, treatments: 360, occupancyPct: 66, revenue: 26_800 },
+  { name: 'LymphStar LET Therapy', patients: 110, treatments: 320, occupancyPct: 63, revenue: 22_100 },
+  { name: 'BEMER Therapy', patients: 96, treatments: 280, occupancyPct: 55, revenue: 18_400 },
+  { name: 'BioCharger', patients: 88, treatments: 240, occupancyPct: 52, revenue: 14_600 },
+  { name: 'SCENAR Therapy', patients: 74, treatments: 190, occupancyPct: 49, revenue: 12_600 },
+  { name: 'Biomodulator Therapy', patients: 68, treatments: 160, occupancyPct: 47, revenue: 11_200 },
+  // Diagnostics (Functional Neuro Exam)
+  { name: 'RightEye Diagnostics', patients: 168, treatments: 168, occupancyPct: 58, revenue: 11_700 },
+  { name: 'Autonomic Nervous System', patients: 142, treatments: 142, occupancyPct: 54, revenue: 9_800 },
+  { name: 'InBody 970', patients: 312, treatments: 312, occupancyPct: 74, revenue: 9_400 },
+  { name: 'MEAD Analysis', patients: 96, treatments: 96, occupancyPct: 44, revenue: 6_200 },
+]
+
+/** Helixona program tracks patients enroll in. */
+export function getPrograms() {
+  return [
+    { name: 'Wellness & Longevity', patients: 600 },
+    { name: 'Chronic Illness', patients: 412 },
+    { name: 'Functional Neuro Exam', patients: 268 },
+  ]
+}
+
 export function getModalityBreakdown(scale: number, payment: PaymentType): ModalityBreakdown[] {
   const pm = payment === 'all' ? 1 : 0.55
-  const base: ModalityBreakdown[] = [
-    { modality: 'IV Therapy', patients: 540, revenue: 96_400 },
-    { modality: 'EBOO', patients: 188, revenue: 121_300 },
-    { modality: 'Hormone / HRT', patients: 224, revenue: 54_200 },
-    { modality: 'Peptides', patients: 142, revenue: 31_800 },
-    { modality: 'Aesthetics', patients: 186, revenue: 23_100 },
-  ]
-  return base.map((m) => ({
-    modality: m.modality,
+  // Top services by revenue keep the charts readable.
+  const top = [...SERVICE_CATALOG].sort((a, b) => b.revenue - a.revenue).slice(0, 8)
+  return top.map((m) => ({
+    modality: m.name,
     patients: Math.round(m.patients * scale),
     revenue: Math.round(m.revenue * scale * pm),
   }))
@@ -405,19 +439,19 @@ const PATIENTS: PatientRecord[] = [
     stageDates: ['2026-05-20', '2026-05-21', '2026-05-26', '2026-05-30', '2026-06-02', undefined],
   },
   {
-    id: 'p3', name: 'Sophia Nguyen', stageIndex: 3, status: 'on-track', modality: 'Hormone / HRT',
+    id: 'p3', name: 'Sophia Nguyen', stageIndex: 3, status: 'on-track', modality: 'Neuromuscular Therapy',
     coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-28',
     nextAppt: '2026-06-05', revenue: 420, phone: '(305) 555-0123', email: 's.nguyen@example.com',
     stageDates: ['2026-05-28', '2026-05-29', '2026-06-01', '2026-06-03', undefined, undefined],
   },
   {
-    id: 'p4', name: 'James Carter', stageIndex: 2, status: 'on-track', modality: 'Peptides',
+    id: 'p4', name: 'James Carter', stageIndex: 2, status: 'on-track', modality: 'Erchonia Laser Therapy',
     coordinator: 'Marie', source: 'Referral', createdAt: '2026-06-01',
     nextAppt: undefined, revenue: 0, phone: '(305) 555-0177', email: 'jcarter@example.com',
     stageDates: ['2026-06-01', '2026-06-02', '2026-06-03', undefined, undefined, undefined],
   },
   {
-    id: 'p5', name: 'Emma Rodriguez', stageIndex: 1, status: 'on-track', modality: 'Aesthetics',
+    id: 'p5', name: 'Emma Rodriguez', stageIndex: 1, status: 'on-track', modality: 'BEMER Therapy',
     coordinator: 'Marie', source: 'Instagram', createdAt: '2026-06-02',
     nextAppt: undefined, revenue: 0, phone: '(305) 555-0119', email: 'emma.r@example.com',
     stageDates: ['2026-06-02', '2026-06-03', undefined, undefined, undefined, undefined],
@@ -435,7 +469,7 @@ const PATIENTS: PatientRecord[] = [
     stageDates: ['2026-05-25', '2026-05-27', '2026-05-31', undefined, undefined, undefined],
   },
   {
-    id: 'p8', name: 'Noah Pearson', stageIndex: 1, status: 'declined', modality: 'Hormone / HRT',
+    id: 'p8', name: 'Noah Pearson', stageIndex: 1, status: 'declined', modality: 'Neuromuscular Therapy',
     coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-22',
     nextAppt: undefined, revenue: 0, phone: '(305) 555-0134', email: 'noah.p@example.com',
     stageDates: ['2026-05-22', '2026-05-24', undefined, undefined, undefined, undefined],
@@ -448,13 +482,13 @@ const PATIENTS: PatientRecord[] = [
     stageDates: ['2026-01-15', '2026-01-16', '2026-01-19', '2026-01-23', '2026-01-30', '2026-02-14'],
   },
   {
-    id: 'p10', name: 'Ethan Brooks', stageIndex: 4, status: 'on-track', modality: 'Peptides',
+    id: 'p10', name: 'Ethan Brooks', stageIndex: 4, status: 'on-track', modality: 'Erchonia Laser Therapy',
     coordinator: 'Marie', source: 'Instagram', createdAt: '2026-05-18',
     nextAppt: '2026-06-10', revenue: 980, phone: '(305) 555-0166', email: 'ethan.b@example.com',
     stageDates: ['2026-05-18', '2026-05-19', '2026-05-23', '2026-05-27', '2026-06-01', undefined],
   },
   {
-    id: 'p11', name: 'Mia Coleman', stageIndex: 3, status: 'on-track', modality: 'Aesthetics',
+    id: 'p11', name: 'Mia Coleman', stageIndex: 3, status: 'on-track', modality: 'BEMER Therapy',
     coordinator: 'Marie', source: 'Referral', createdAt: '2026-05-30',
     nextAppt: '2026-06-08', revenue: 260, phone: '(305) 555-0111', email: 'mia.c@example.com',
     stageDates: ['2026-05-30', '2026-05-31', '2026-06-02', '2026-06-04', undefined, undefined],
@@ -473,7 +507,7 @@ const PATIENTS: PatientRecord[] = [
     declineReason: 'Insurance not accepted (out-of-network)',
   },
   {
-    id: 'p14', name: 'Henry Diaz', stageIndex: 1, status: 'declined', modality: 'Peptides',
+    id: 'p14', name: 'Henry Diaz', stageIndex: 1, status: 'declined', modality: 'Erchonia Laser Therapy',
     coordinator: 'Marie', source: 'Instagram', createdAt: '2026-05-21',
     nextAppt: undefined, revenue: 0, phone: '(305) 555-0193', email: 'henry.d@example.com',
     stageDates: ['2026-05-21', '2026-05-23', undefined, undefined, undefined, undefined],
@@ -794,7 +828,7 @@ export function getOccupancy(): OccupancyUnit[] {
     { unit: 'EBOO Room 2', capacity: 4, booked: 3 },
     { unit: 'Exam Room 1', capacity: 6, booked: 5 },
     { unit: 'Exam Room 2', capacity: 6, booked: 4 },
-    { unit: 'Aesthetics', capacity: 5, booked: 4 },
+    { unit: 'Laser / PRP', capacity: 5, booked: 4 },
   ]
 }
 
@@ -1007,12 +1041,10 @@ export function getEmailCampaigns(): EmailCampaign[] {
 // TREATMENTS (occupancy or revenue by modality)
 // -----------------------------------------------------------------------------
 export function getTreatments(): Treatment[] {
-  return [
-    { name: 'IV Therapy', treatments: 540, occupancyPct: 84, revenue: 96_400 },
-    { name: 'EBOO', treatments: 188, occupancyPct: 92, revenue: 121_300 },
-    { name: 'Hormone / HRT', treatments: 224, occupancyPct: 71, revenue: 54_200 },
-    { name: 'Peptides', treatments: 142, occupancyPct: 63, revenue: 31_800 },
-    { name: 'Aesthetics', treatments: 186, occupancyPct: 68, revenue: 23_100 },
-    { name: 'Erchonia Laser', treatments: 74, occupancyPct: 49, revenue: 12_600 },
-  ]
+  return SERVICE_CATALOG.map((s) => ({
+    name: s.name,
+    treatments: s.treatments,
+    occupancyPct: s.occupancyPct,
+    revenue: s.revenue,
+  }))
 }

@@ -17,6 +17,7 @@ import {
   getNewPatientPipeline,
   getNewPatientTeam,
   getPatientFunnel,
+  getPrograms,
 } from '../data/mockData'
 import { CATEGORICAL } from '../lib/colors'
 
@@ -43,6 +44,7 @@ export default function Patients({ scale, payment }: Props) {
   const funnel = getPatientFunnel(scale)
   const pipeline = getNewPatientPipeline(scale)
   const team = getNewPatientTeam()
+  const programs = getPrograms()
   const modalities = getModalityBreakdown(scale, payment)
 
   return (
@@ -85,6 +87,16 @@ export default function Patients({ scale, payment }: Props) {
         </div>
       </div>
 
+      {/* Helixona program tracks */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {programs.map((p) => (
+          <div key={p.name} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-3xl font-bold tabular-nums text-ink-900">{p.patients.toLocaleString()}</p>
+            <p className="mt-1 text-sm font-medium text-slate-500">{p.name}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Conversion funnel" subtitle="From lead to first appointment">
           <div className="space-y-2.5">
@@ -119,13 +131,13 @@ export default function Patients({ scale, payment }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
               <XAxis
                 dataKey="modality"
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                tick={{ fontSize: 10, fill: '#94a3b8' }}
                 axisLine={false}
                 tickLine={false}
                 interval={0}
-                angle={-12}
+                angle={-35}
                 textAnchor="end"
-                height={50}
+                height={90}
               />
               <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v: number) => `${v.toLocaleString()} patients`} />

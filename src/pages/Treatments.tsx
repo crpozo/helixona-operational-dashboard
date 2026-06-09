@@ -74,7 +74,7 @@ export default function Treatments() {
           </div>
         }
       >
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={440}>
           <BarChart data={sorted} layout="vertical" margin={{ left: 24, right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" horizontal={false} />
             <XAxis
@@ -85,7 +85,7 @@ export default function Treatments() {
               domain={metric === 'occupancy' ? [0, 100] : [0, 'auto']}
               tickFormatter={(v) => (metric === 'revenue' ? `$${v / 1000}k` : `${v}%`)}
             />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={100} />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={155} />
             <Tooltip formatter={(v: number) => (metric === 'revenue' ? formatCompact(v, 'currency') : `${v}%`)} />
             <Bar dataKey={metric === 'revenue' ? 'revenue' : 'occupancyPct'} radius={[0, 6, 6, 0]} barSize={20}>
               {sorted.map((t, i) => (

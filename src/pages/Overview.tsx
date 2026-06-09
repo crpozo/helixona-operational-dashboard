@@ -165,10 +165,10 @@ export default function Overview({ scale, payment }: Props) {
               <YAxis
                 type="category"
                 dataKey="modality"
-                tick={{ fontSize: 12, fill: '#64748b' }}
+                tick={{ fontSize: 11, fill: '#64748b' }}
                 axisLine={false}
                 tickLine={false}
-                width={90}
+                width={140}
               />
               <Tooltip formatter={(v: number) => formatCompact(v, 'currency')} />
               <Bar dataKey="revenue" radius={[0, 6, 6, 0]} barSize={18}>
