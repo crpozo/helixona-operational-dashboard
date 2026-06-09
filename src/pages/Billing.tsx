@@ -22,17 +22,49 @@ import {
 import { CATEGORICAL, COLORS } from '../lib/colors'
 import { formatCompact, formatValue } from '../lib/format'
 import { downloadCsv } from '../lib/csv'
+import type { Kpi } from '../types'
 
 type OwedBasis = 'billed' | 'allowable'
 
 export default function Billing() {
-  const kpis = getInsuranceKpis()
   const payers = getClaimsByPayer()
-  const denials = getDenials()
-  const trend = getBillingTrend()
-
   const [payerFilter, setPayerFilter] = useState<string>('All')
   const [basis, setBasis] = useState<OwedBasis>('billed')
+
+  // Selected payer (null = All). Everything below reacts to this.
+  const selected = payerFilter === 'All' ? null : payers.find((p) => p.payer === payerFilter) ?? null
+  const totalBilled = payers.reduce((s, p) => s + p.billed, 0)
+  const share = selected ? selected.billed / totalBilled : 1
+
+  const kpis: Kpi[] = selected
+    ? [
+        { id: 'p-billed', label: 'Billed', value: selected.billed, format: 'currency', deltaPct: 0, trend: 'flat', hint: `${selected.payer} this period` },
+        { id: 'p-claims', label: 'Claims', value: selected.claims, format: 'number', deltaPct: 0, trend: 'flat', hint: 'Submitted' },
+        { id: 'p-paid', label: 'Paid', value: selected.paid, format: 'currency', deltaPct: 0, trend: 'flat', hint: 'Received' },
+        { id: 'p-out', label: 'Outstanding', value: selected.outstanding, format: 'currency', deltaPct: 0, trend: 'flat', lowerIsBetter: true, hint: 'Owed (billed)' },
+        { id: 'p-days', label: 'Avg days to pay', value: selected.avgDaysToPay, format: 'days', deltaPct: 0, trend: 'flat', lowerIsBetter: true, hint: `${selected.payer} cycle` },
+        { id: 'p-denial', label: 'Denial rate', value: selected.denialRate, format: 'percent', deltaPct: 0, trend: 'flat', lowerIsBetter: true, hint: 'Claims denied' },
+      ]
+    : getInsuranceKpis()
+
+  const trend = getBillingTrend().map((t) => ({
+    label: t.label,
+    billed: Math.round(t.billed * share),
+    collected: Math.round(t.collected * share),
+  }))
+  const denials = getDenials().map((d) => ({ ...d, denials: Math.max(1, Math.round(d.denials * share)) }))
+
+  // Revenue recognition: billed = estimate (not money yet); paid = real revenue (in caja).
+  const agg = selected
+    ? { billed: selected.billed, allowable: selected.allowable, paid: selected.paid }
+    : payers.reduce(
+        (a, p) => ({ billed: a.billed + p.billed, allowable: a.allowable + p.allowable, paid: a.paid + p.paid }),
+        { billed: 0, allowable: 0, paid: 0 },
+      )
+  const estimated = agg.billed
+  const expected = agg.allowable
+  const collected = agg.paid
+  const atRisk = Math.max(0, agg.allowable - agg.paid)
 
   const owed = (p: (typeof payers)[number]) =>
     basis === 'billed' ? p.outstanding : Math.max(0, p.allowable - p.paid)
@@ -52,13 +84,6 @@ export default function Billing() {
 
   return (
     <div className="space-y-6">
-      {/* KPIs */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
-        ))}
-      </div>
-
       {/* Payer filter */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-slate-400">Filter by insurance:</span>
@@ -77,9 +102,46 @@ export default function Billing() {
         ))}
       </div>
 
+      {/* Revenue recognition — estimated (billed) vs real revenue (collected/in caja) */}
+      <div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-700">Estimated (billed)</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-amber-800">{formatValue(estimated, 'currency')}</p>
+            <p className="mt-1 text-[11px] text-amber-700/80">Submitted to insurers — not money yet</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Expected (allowable)</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">{formatValue(expected, 'currency')}</p>
+            <p className="mt-1 text-[11px] text-slate-400">Contracted amount likely to be paid</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+            <p className="text-sm font-medium text-emerald-700">Revenue (collected · in caja)</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-800">{formatValue(collected, 'currency')}</p>
+            <p className="mt-1 text-[11px] text-emerald-700/80">Actually received — recognized revenue</p>
+          </div>
+          <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4">
+            <p className="text-sm font-medium text-rose-700">At risk · outstanding</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-rose-800">{formatValue(atRisk, 'currency')}</p>
+            <p className="mt-1 text-[11px] text-rose-700/80">Pending — can be denied or clawed back</p>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-slate-400">
+          Only collected money counts as revenue. Billed amounts are an estimate — insurers can deny, delay,
+          or claw back payments until it's in the bank.
+        </p>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {kpis.map((k) => (
+          <KpiCard key={k.id} kpi={k} />
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Billed vs collected MoM */}
-        <Card title="Billed vs collected" subtitle="Month over month" className="lg:col-span-2">
+        <Card title="Billed vs collected" subtitle={`Month over month · ${selected ? selected.payer : 'All payers'}`} className="lg:col-span-2">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={trend} margin={{ left: -16, right: 8, top: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />

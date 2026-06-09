@@ -44,10 +44,10 @@ export default function Revenue({ scale, payment }: Props) {
   ].filter((m) => m.value > 0)
 
   const tiles = [
-    { label: 'Estimated revenue (gross)', value: summary.estimated, hint: 'Billed — bruto' },
-    { label: 'Collected', value: summary.collected, hint: 'Actually received' },
+    { label: 'Estimated revenue (gross)', value: summary.estimated, hint: 'Billed — not money yet' },
+    { label: 'Revenue (collected)', value: summary.collected, hint: 'In caja — recognized' },
     { label: 'Collection rate', value: summary.collectionRate, hint: 'Collected ÷ estimated', pct: true },
-    { label: 'Collected today', value: summary.collectedToday, hint: 'Earned today' },
+    { label: 'Collected today', value: summary.collectedToday, hint: 'In caja today' },
   ]
 
   const exportModalities = () =>
