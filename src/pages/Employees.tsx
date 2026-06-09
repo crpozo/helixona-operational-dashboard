@@ -14,7 +14,7 @@ interface Props {
 
 type SortKey = 'name' | 'role' | 'revenue' | 'utilizationPct'
 
-const ROLE_FILTERS = ['All', 'Front Desk', 'Medical Assistant', 'PCC', 'Nurse', 'Medic'] as const
+const ROLE_FILTERS = ['All', 'Provider', 'New Patient Advisor', 'Front Desk', 'Medical Assistant', 'RCM / Billing', 'Office Manager'] as const
 
 function utilTone(pct: number): string {
   if (pct >= 90) return 'text-emerald-600'

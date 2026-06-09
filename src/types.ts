@@ -45,12 +45,12 @@ export interface FunnelStage {
 }
 
 export type RoleId =
+  | 'provider'
+  | 'newPatient'
   | 'frontDesk'
   | 'ma'
-  | 'pcc'
-  | 'nurse'
-  | 'medics'
-  | 'newPatient'
+  | 'rcm'
+  | 'admin'
 
 export interface RoleMetric {
   label: string
