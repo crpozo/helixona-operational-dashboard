@@ -1,5 +1,12 @@
 import { useState } from 'react'
 import {
+  Facebook,
+  Globe,
+  Instagram,
+  Layers,
+  Mail,
+} from 'lucide-react'
+import {
   Area,
   AreaChart,
   Bar,
@@ -26,6 +33,14 @@ import { formatCompact } from '../lib/format'
 
 const CHANNELS: MarketingChannelKey[] = ['all', 'web', 'instagram', 'facebook', 'email']
 
+const CHANNEL_ICONS: Record<MarketingChannelKey, typeof Layers> = {
+  all: Layers,
+  web: Globe,
+  instagram: Instagram,
+  facebook: Facebook,
+  email: Mail,
+}
+
 export default function Marketing() {
   const [channel, setChannel] = useState<MarketingChannelKey>('all')
   const kpis = getMarketingKpis(channel)
@@ -39,19 +54,23 @@ export default function Marketing() {
       {/* Channel filter */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-slate-400">Channel:</span>
-        {CHANNELS.map((c) => (
-          <button
-            key={c}
-            onClick={() => setChannel(c)}
-            className={`rounded-lg border px-3 py-1 text-xs font-semibold transition ${
-              channel === c
-                ? 'border-brand-500 bg-brand-500 text-ink-900'
-                : 'border-slate-200 bg-white text-slate-500 hover:border-brand-400'
-            }`}
-          >
-            {MARKETING_CHANNEL_LABELS[c]}
-          </button>
-        ))}
+        {CHANNELS.map((c) => {
+          const Icon = CHANNEL_ICONS[c]
+          return (
+            <button
+              key={c}
+              onClick={() => setChannel(c)}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-semibold transition ${
+                channel === c
+                  ? 'border-brand-500 bg-brand-500 text-ink-900'
+                  : 'border-slate-200 bg-white text-slate-500 hover:border-brand-400'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {MARKETING_CHANNEL_LABELS[c]}
+            </button>
+          )
+        })}
       </div>
 
       {/* KPIs (per channel) */}
