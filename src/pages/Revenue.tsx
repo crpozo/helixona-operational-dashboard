@@ -45,9 +45,9 @@ export default function Revenue({ scale, payment }: Props) {
 
   const tiles = [
     { label: 'Estimated revenue (gross)', value: summary.estimated, hint: 'Billed — not money yet' },
-    { label: 'Revenue (collected)', value: summary.collected, hint: 'In caja — recognized' },
+    { label: 'Revenue (collected)', value: summary.collected, hint: 'In the bank — recognized' },
     { label: 'Collection rate', value: summary.collectionRate, hint: 'Collected ÷ estimated', pct: true },
-    { label: 'Collected today', value: summary.collectedToday, hint: 'In caja today' },
+    { label: 'Collected today', value: summary.collectedToday, hint: 'In the bank today' },
   ]
 
   const exportModalities = () =>

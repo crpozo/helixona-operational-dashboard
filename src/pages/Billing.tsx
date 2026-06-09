@@ -54,7 +54,7 @@ export default function Billing() {
   }))
   const denials = getDenials().map((d) => ({ ...d, denials: Math.max(1, Math.round(d.denials * share)) }))
 
-  // Revenue recognition: billed = estimate (not money yet); paid = real revenue (in caja).
+  // Revenue recognition: billed = estimate (not money yet); paid = real revenue (in the bank).
   const agg = selected
     ? { billed: selected.billed, allowable: selected.allowable, paid: selected.paid }
     : payers.reduce(
@@ -102,7 +102,7 @@ export default function Billing() {
         ))}
       </div>
 
-      {/* Revenue recognition — estimated (billed) vs real revenue (collected/in caja) */}
+      {/* Revenue recognition — estimated (billed) vs real revenue (collected / in the bank) */}
       <div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
@@ -116,7 +116,7 @@ export default function Billing() {
             <p className="mt-1 text-[11px] text-slate-400">Contracted amount likely to be paid</p>
           </div>
           <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-            <p className="text-sm font-medium text-emerald-700">Revenue (collected · in caja)</p>
+            <p className="text-sm font-medium text-emerald-700">Revenue (collected · in the bank)</p>
             <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-800">{formatValue(collected, 'currency')}</p>
             <p className="mt-1 text-[11px] text-emerald-700/80">Actually received — recognized revenue</p>
           </div>
