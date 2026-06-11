@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
 import Card from '../components/Card'
-import type { Goal } from '../types'
+import type { Employee, Goal } from '../types'
 import { getEmployees } from '../data/mockData'
 import { formatValue } from '../lib/format'
 
@@ -71,18 +71,66 @@ export default function Admin({ goals, onGoalsChange }: Props) {
   // ----- Employees (placeholder local editing) -----
   const [employees, setEmployees] = useState(() => getEmployees(1))
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [edit, setEdit] = useState({ name: '', role: '' })
+  const [edit, setEdit] = useState({ name: '', role: '', utilization: '' })
+  const [showEmpForm, setShowEmpForm] = useState(false)
+  const [empDraft, setEmpDraft] = useState({ name: '', role: ROLE_OPTIONS[0], utilization: '' })
 
-  const startEdit = (id: string, name: string, role: string) => {
+  const ROLE_TO_ID: Record<string, Employee['roleId']> = {
+    Provider: 'provider',
+    'Physician Associate': 'pa',
+    'New Patient Advisor': 'newPatient',
+    'Front Desk': 'frontDesk',
+    'Medical Assistant': 'ma',
+    Medic: 'medic',
+    Nurse: 'nurse',
+    Billing: 'billing',
+    'Operations Manager': 'ops',
+    Admin: 'admin',
+    Executive: 'exec',
+  }
+
+  const startEdit = (id: string, name: string, role: string, utilization: number) => {
     setEditingId(id)
-    setEdit({ name, role })
+    setEdit({ name, role, utilization: String(utilization) })
   }
   const saveEdit = () => {
+    const util = Number(edit.utilization)
     setEmployees((list) =>
-      list.map((e) => (e.id === editingId ? { ...e, name: edit.name.trim() || e.name, role: edit.role } : e)),
+      list.map((e) =>
+        e.id === editingId
+          ? {
+              ...e,
+              name: edit.name.trim() || e.name,
+              role: edit.role,
+              roleId: ROLE_TO_ID[edit.role] ?? e.roleId,
+              utilizationPct: Number.isFinite(util) ? Math.max(0, Math.min(100, util)) : e.utilizationPct,
+            }
+          : e,
+      ),
     )
     setEditingId(null)
   }
+
+  const addEmployee = () => {
+    if (!empDraft.name.trim()) return
+    const util = Number(empDraft.utilization)
+    setEmployees((list) => [
+      ...list,
+      {
+        id: `emp-${Date.now()}`,
+        name: empDraft.name.trim(),
+        role: empDraft.role,
+        roleId: ROLE_TO_ID[empDraft.role] ?? 'ma',
+        utilizationPct: Number.isFinite(util) && empDraft.utilization !== '' ? Math.max(0, Math.min(100, util)) : 0,
+        revenue: 0,
+        metrics: [],
+      },
+    ])
+    setEmpDraft({ name: '', role: ROLE_OPTIONS[0], utilization: '' })
+    setShowEmpForm(false)
+  }
+
+  const deleteEmployee = (id: string) => setEmployees((list) => list.filter((e) => e.id !== id))
 
   // ----- Roles & permissions (placeholder toggles) -----
   const [permissions, setPermissions] = useState(DEFAULT_PERMISSIONS)
@@ -209,7 +257,60 @@ export default function Admin({ goals, onGoalsChange }: Props) {
       </Card>
 
       {/* ------------------------------------------------ Employees --------- */}
-      <Card title="Employees" subtitle="Edit employee info (name and role)">
+      <Card
+        title="Employees"
+        subtitle="Add, edit, or remove employees"
+        action={
+          <button
+            onClick={() => setShowEmpForm((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-brand-300 hover:text-brand-700"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add employee
+          </button>
+        }
+      >
+        {showEmpForm && (
+          <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-brand-200 bg-brand-50/50 p-3">
+            <div>
+              <p className="mb-1 text-[11px] font-medium text-slate-500">Name</p>
+              <input
+                value={empDraft.name}
+                onChange={(e) => setEmpDraft({ ...empDraft, name: e.target.value })}
+                placeholder="e.g. Laura"
+                className="w-44 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-brand-400"
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] font-medium text-slate-500">Role</p>
+              <select
+                value={empDraft.role}
+                onChange={(e) => setEmpDraft({ ...empDraft, role: e.target.value })}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-brand-400"
+              >
+                {ROLE_OPTIONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] font-medium text-slate-500">Utilization %</p>
+              <input
+                value={empDraft.utilization}
+                onChange={(e) => setEmpDraft({ ...empDraft, utilization: e.target.value })}
+                placeholder="0"
+                inputMode="numeric"
+                className="w-20 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-brand-400"
+              />
+            </div>
+            <button
+              onClick={addEmployee}
+              className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-semibold text-ink-900 transition hover:bg-brand-400"
+            >
+              Save employee
+            </button>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -251,7 +352,18 @@ export default function Admin({ goals, onGoalsChange }: Props) {
                         <span className="text-slate-600">{e.role}</span>
                       )}
                     </td>
-                    <td className="py-2 text-right tabular-nums text-slate-600">{e.utilizationPct}%</td>
+                    <td className="py-2 text-right tabular-nums text-slate-600">
+                      {isEditing ? (
+                        <input
+                          value={edit.utilization}
+                          onChange={(ev) => setEdit({ ...edit, utilization: ev.target.value })}
+                          inputMode="numeric"
+                          className="w-16 rounded-lg border border-brand-300 bg-white px-2 py-1 text-right text-sm outline-none focus:border-brand-400"
+                        />
+                      ) : (
+                        `${e.utilizationPct}%`
+                      )}
+                    </td>
                     <td className="py-2 text-right">
                       {isEditing ? (
                         <span className="inline-flex gap-1">
@@ -263,13 +375,22 @@ export default function Admin({ goals, onGoalsChange }: Props) {
                           </button>
                         </span>
                       ) : (
-                        <button
-                          onClick={() => startEdit(e.id, e.name, e.role)}
-                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-brand-50 hover:text-brand-700"
-                          title="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
+                        <span className="inline-flex gap-1">
+                          <button
+                            onClick={() => startEdit(e.id, e.name, e.role, e.utilizationPct)}
+                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-brand-50 hover:text-brand-700"
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteEmployee(e.id)}
+                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                            title="Remove employee"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </span>
                       )}
                     </td>
                   </tr>
