@@ -15,15 +15,10 @@ import {
   getExecutiveKpis,
   getModalityBreakdown,
   getNewPatientPipeline,
-  getNewPatientTeam,
   getPatientFunnel,
   getPrograms,
 } from '../data/mockData'
 import { CATEGORICAL } from '../lib/colors'
-
-function fmtShort(iso: string): string {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 
 interface Props {
   scale: number
@@ -43,7 +38,6 @@ export default function Patients({ scale, payment }: Props) {
   )
   const funnel = getPatientFunnel(scale)
   const pipeline = getNewPatientPipeline(scale)
-  const team = getNewPatientTeam()
   const programs = getPrograms()
   const modalities = getModalityBreakdown(scale, payment)
 
@@ -63,28 +57,6 @@ export default function Patients({ scale, payment }: Props) {
             <p className="mt-1 text-sm font-medium">{p.status}</p>
           </div>
         ))}
-      </div>
-
-      {/* New Patient Team operational status */}
-      <div className="grid grid-cols-2 gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-4">
-        <div>
-          <p className="text-xs text-slate-400">Next new-patient slot</p>
-          <p className="mt-0.5 text-lg font-bold text-ink-900">{fmtShort(team.nextNewPatientSlot)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-400">On waitlist</p>
-          <p className="mt-0.5 text-lg font-bold text-ink-900">{team.waitlist}</p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-400">Next weekly review</p>
-          <p className="mt-0.5 text-lg font-bold text-ink-900">{fmtShort(team.nextReview)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-400">Review · {team.reviewers}</p>
-          <p className={`mt-0.5 text-lg font-bold ${team.reviewStatus === 'Committed' ? 'text-emerald-600' : 'text-amber-600'}`}>
-            {team.reviewStatus}
-          </p>
-        </div>
       </div>
 
       {/* Helixona program tracks */}
