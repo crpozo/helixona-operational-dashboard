@@ -14,6 +14,7 @@
 // =============================================================================
 
 import type {
+  AgingRow,
   Alert,
   DenialCategory,
   EmailCampaign,
@@ -258,25 +259,27 @@ interface CatalogItem {
   treatments: number
   occupancyPct: number
   revenue: number
+  capacity: number
+  booked: number
 }
 
 const SERVICE_CATALOG: CatalogItem[] = [
   // Therapies
-  { name: 'IV Therapy', patients: 540, treatments: 1_540, occupancyPct: 84, revenue: 96_400 },
-  { name: 'EBOO', patients: 188, treatments: 212, occupancyPct: 92, revenue: 121_300 },
-  { name: 'Platelet-Rich Plasma (PRP)', patients: 64, treatments: 88, occupancyPct: 61, revenue: 78_200 },
-  { name: 'Erchonia Laser Therapy', patients: 142, treatments: 410, occupancyPct: 68, revenue: 31_800 },
-  { name: 'Neuromuscular Therapy', patients: 132, treatments: 360, occupancyPct: 66, revenue: 26_800 },
-  { name: 'LymphStar LET Therapy', patients: 110, treatments: 320, occupancyPct: 63, revenue: 22_100 },
-  { name: 'BEMER Therapy', patients: 96, treatments: 280, occupancyPct: 55, revenue: 18_400 },
-  { name: 'BioCharger', patients: 88, treatments: 240, occupancyPct: 52, revenue: 14_600 },
-  { name: 'SCENAR Therapy', patients: 74, treatments: 190, occupancyPct: 49, revenue: 12_600 },
-  { name: 'Biomodulator Therapy', patients: 68, treatments: 160, occupancyPct: 47, revenue: 11_200 },
+  { name: 'IV Therapy', patients: 540, treatments: 1_540, occupancyPct: 84, revenue: 96_400, capacity: 25, booked: 21 },
+  { name: 'EBOO', patients: 188, treatments: 212, occupancyPct: 92, revenue: 121_300, capacity: 8, booked: 7 },
+  { name: 'Platelet-Rich Plasma (PRP)', patients: 64, treatments: 88, occupancyPct: 61, revenue: 78_200, capacity: 6, booked: 4 },
+  { name: 'Erchonia Laser Therapy', patients: 142, treatments: 410, occupancyPct: 68, revenue: 31_800, capacity: 10, booked: 7 },
+  { name: 'Neuromuscular Therapy', patients: 132, treatments: 360, occupancyPct: 66, revenue: 26_800, capacity: 10, booked: 7 },
+  { name: 'LymphStar LET Therapy', patients: 110, treatments: 320, occupancyPct: 63, revenue: 22_100, capacity: 8, booked: 5 },
+  { name: 'BEMER Therapy', patients: 96, treatments: 280, occupancyPct: 55, revenue: 18_400, capacity: 8, booked: 4 },
+  { name: 'BioCharger', patients: 88, treatments: 240, occupancyPct: 52, revenue: 14_600, capacity: 6, booked: 3 },
+  { name: 'SCENAR Therapy', patients: 74, treatments: 190, occupancyPct: 49, revenue: 12_600, capacity: 6, booked: 3 },
+  { name: 'Biomodulator Therapy', patients: 68, treatments: 160, occupancyPct: 47, revenue: 11_200, capacity: 6, booked: 3 },
   // Diagnostics (Functional Neuro Exam)
-  { name: 'RightEye Diagnostics', patients: 168, treatments: 168, occupancyPct: 58, revenue: 11_700 },
-  { name: 'Autonomic Nervous System', patients: 142, treatments: 142, occupancyPct: 54, revenue: 9_800 },
-  { name: 'InBody 970', patients: 312, treatments: 312, occupancyPct: 74, revenue: 9_400 },
-  { name: 'MEAD Analysis', patients: 96, treatments: 96, occupancyPct: 44, revenue: 6_200 },
+  { name: 'RightEye Diagnostics', patients: 168, treatments: 168, occupancyPct: 58, revenue: 11_700, capacity: 8, booked: 5 },
+  { name: 'Autonomic Nervous System', patients: 142, treatments: 142, occupancyPct: 54, revenue: 9_800, capacity: 8, booked: 4 },
+  { name: 'InBody 970', patients: 312, treatments: 312, occupancyPct: 74, revenue: 9_400, capacity: 12, booked: 9 },
+  { name: 'MEAD Analysis', patients: 96, treatments: 96, occupancyPct: 44, revenue: 6_200, capacity: 6, booked: 3 },
 ]
 
 /** Helixona program tracks patients enroll in. */
@@ -284,7 +287,6 @@ export function getPrograms() {
   return [
     { name: 'Wellness & Longevity', patients: 600 },
     { name: 'Chronic Illness', patients: 412 },
-    { name: 'Functional Neuro Exam', patients: 268 },
   ]
 }
 
@@ -309,102 +311,161 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'provider',
       name: 'Provider · Dr. Drannikov',
-      summary: 'Patient visits, EBOOs, procedures, and IVs under the physician.',
+      summary: 'New & established appointments, acupuncture, trigger points, hormones, PRP.',
       source: 'ECW',
       headcount: 1,
       metrics: [
-        { label: 'Patients seen', value: r(540), format: 'number' },
-        { label: 'EBOOs performed', value: r(188), format: 'number' },
-        { label: 'Procedures', value: r(420), format: 'number' },
-        { label: 'IVs supervised', value: r(1_540), format: 'number' },
-        { label: 'Revenue generated', value: r(96_400), format: 'currency' },
+        { label: 'New patient appointments', value: r(96), format: 'number' },
+        { label: 'Established patient appts', value: r(444), format: 'number' },
+        { label: 'Acupuncture appointments', value: r(84), format: 'number' },
+        { label: 'Trigger point injections', value: r(62), format: 'number' },
+        { label: 'Hormone consults', value: r(58), format: 'number' },
+        { label: 'PRP procedures', value: r(34), format: 'number' },
       ],
-      leaderboard: [{ name: 'Dr. Drannikov', metric: r(96_400), format: 'currency' }],
+      leaderboard: [{ name: 'Dr. Drannikov', metric: r(540), format: 'number' }],
+    },
+    {
+      id: 'pa',
+      name: 'Physician Associate · Brock',
+      summary: 'Patient visits, procedures, and EBOO clearances under the provider.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'Patients seen', value: r(386), format: 'number' },
+        { label: 'Procedures', value: r(248), format: 'number' },
+        { label: 'EBOO clearances', value: r(84), format: 'number' },
+        { label: 'Follow-ups', value: r(212), format: 'number' },
+      ],
+      leaderboard: [{ name: 'Brock', metric: r(386), format: 'number' }],
     },
     {
       id: 'newPatient',
       name: 'New Patient Advisor · Marie',
-      summary: 'Leads, outbound calls, onboarding, waitlist, and declines.',
+      summary: 'Calls, messages, and texts — all tracked with trending over time.',
       source: '8x8 + CRM',
       headcount: 1,
       metrics: [
+        { label: 'Calls', value: r(1_180), format: 'number' },
+        { label: 'Messages', value: r(940), format: 'number' },
+        { label: 'Texts', value: r(1_460), format: 'number' },
         { label: 'Leads', value: r(420), format: 'number' },
-        { label: 'Outbound calls', value: r(1_180), format: 'number' },
         { label: 'Onboarded', value: r(132), format: 'number' },
         { label: 'On waitlist', value: r(58), format: 'number' },
-        { label: 'Declined', value: r(44), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [{ name: 'Marie', metric: r(132), format: 'number' }],
     },
     {
       id: 'frontDesk',
-      name: 'Front Desk · Jazzmine',
-      summary: 'Patient collections (copays/deductibles), cash sales, and calls.',
+      name: 'Front Desk',
+      summary: 'Cash sales, copays/deductibles, and call handling.',
       source: 'ECW + 8x8',
-      headcount: 1,
+      headcount: 2,
       metrics: [
-        { label: 'Patient insurance collection', value: r(38_600), format: 'currency', target: r(42_000) },
         { label: 'Cash service sales', value: r(42_700), format: 'currency', target: r(45_000) },
+        { label: 'Copays & deductibles', value: r(18_300), format: 'currency' },
         { label: 'Inbound calls', value: r(2_140), format: 'number' },
         { label: 'Calls answered', value: r(1_840), format: 'number' },
         { label: '% inbound answered', value: 86, format: 'percent', target: 90 },
         { label: 'Avg call duration', value: 4.2, format: 'minutes' },
-        { label: 'Outbound calls', value: r(960), format: 'number', target: r(1_200) },
       ],
-      leaderboard: [{ name: 'Jazzmine', metric: r(38_600), format: 'currency' }],
+      leaderboard: [
+        { name: 'Yazmine', metric: r(24_100), format: 'currency' },
+        { name: 'Heily', metric: r(18_600), format: 'currency' },
+      ],
     },
     {
       id: 'ma',
       name: 'Medical Assistants',
-      summary: 'Vitals, procedures, EBOO/IV delivery, stars, misses, and SMS.',
-      source: 'ECW + 8x8',
-      headcount: 3,
+      summary: 'Vitals, procedures, prescription refills, and patient inquiries.',
+      source: 'ECW',
+      headcount: 2,
       metrics: [
         { label: 'Vitals taken', value: r(2_310), format: 'number' },
         { label: 'Procedures', value: r(1_480), format: 'number' },
-        { label: 'EBOO booked', value: r(212), format: 'number' },
+        { label: 'Prescription refills', value: r(640), format: 'number' },
+        { label: 'Patient inquiries', value: r(1_120), format: 'number' },
+      ],
+      leaderboard: [
+        { name: 'Charlene (Virtual)', metric: r(540), format: 'number' },
+        { name: 'Bee', metric: r(498), format: 'number' },
+      ],
+    },
+    {
+      id: 'medic',
+      name: 'Medics',
+      summary: 'IVs, stars, misses, IVs booked, open charts, and unlocked notes.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
         { label: 'IVs administered', value: r(1_540), format: 'number' },
         { label: 'Stars', value: r(1_620), format: 'number' },
         { label: 'Misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
         { label: 'Cost of misses', value: r(74) * 3.2, format: 'currency', lowerIsBetter: true },
-        { label: 'SMS received', value: r(1_280), format: 'number' },
+        { label: 'IVs booked', value: r(1_720), format: 'number' },
+        { label: 'Open charts', value: r(38), format: 'number', lowerIsBetter: true },
+        { label: 'Unlocked notes', value: r(21), format: 'number', lowerIsBetter: true },
       ],
-      leaderboard: [
-        { name: 'Charlenne (Remote)', metric: r(540), format: 'number' },
-        { name: 'Bee', metric: r(498), format: 'number' },
-        { name: 'Heyli', metric: r(442), format: 'number' },
-      ],
+      leaderboard: [{ name: 'Bea', metric: r(1_540), format: 'number' }],
     },
     {
-      id: 'rcm',
-      name: 'RCM / Billing',
-      summary: 'Claims submission, denials, patient collections, and A/R.',
+      id: 'nurse',
+      name: 'Nurses',
+      summary: 'EBOOs and IVs.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'EBOOs performed', value: r(188), format: 'number' },
+        { label: 'EBOO booked', value: r(212), format: 'number' },
+        { label: 'IVs administered', value: r(620), format: 'number' },
+      ],
+      leaderboard: [{ name: 'Nic', metric: r(188), format: 'number' }],
+    },
+    {
+      id: 'billing',
+      name: 'Billing',
+      summary: 'Insurance collections, claims, denials, and appeals.',
       source: 'ECW Billing',
       headcount: 2,
       metrics: [
-        { label: 'Claims submitted', value: r(782), format: 'number' },
-        { label: 'Avg days to submit', value: 1.8, format: 'days', lowerIsBetter: true },
+        { label: 'Insurance collections', value: r(98_400), format: 'currency', target: r(110_000) },
+        { label: 'Claims not sent (today)', value: 12, format: 'number', lowerIsBetter: true },
+        { label: 'Avg days to submit claim', value: 1.8, format: 'days', lowerIsBetter: true },
+        { label: 'Claims denied', value: r(86), format: 'number', lowerIsBetter: true },
         { label: 'Denial rate', value: 11, format: 'percent', lowerIsBetter: true, target: 8 },
-        { label: 'Patient collections', value: r(38_600), format: 'currency' },
-        { label: 'Claims resubmitted', value: r(64), format: 'number', lowerIsBetter: true },
-        { label: 'Outstanding A/R', value: 412_900, format: 'currency', lowerIsBetter: true },
+        { label: 'Appeals sent', value: r(34), format: 'number' },
+        { label: 'Claims appealed', value: r(41), format: 'number' },
+        { label: 'Claims paid', value: r(612), format: 'number' },
       ],
       leaderboard: [
-        { name: 'Karina', metric: r(420), format: 'number' },
-        { name: 'Bea', metric: r(362), format: 'number' },
+        { name: 'Vignesh', metric: r(420), format: 'number' },
+        { name: 'Kamalesh', metric: r(362), format: 'number' },
       ],
     },
     {
-      id: 'admin',
-      name: 'Office Manager · Shibani',
-      summary: 'Scheduling, occupancy, no-shows, and team oversight.',
+      id: 'ops',
+      name: 'Operations Manager · Maine',
+      summary: 'Provider scheduling, patient retention, and team productivity.',
       source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'Avg days of appts per provider', value: 6.2, format: 'days' },
+        { label: 'Active patients w/o next appt', value: r(214), format: 'number', lowerIsBetter: true },
+        { label: 'Revenue per employee', value: r(23_300), format: 'currency' },
+        { label: 'Days to next patient visit (new)', value: 4.6, format: 'days', lowerIsBetter: true },
+      ],
+      leaderboard: [{ name: 'Maine', metric: 84, format: 'percent' }],
+    },
+    {
+      id: 'admin',
+      name: 'Admin · Shibani',
+      summary: 'Can edit company info, Employees, and Roles. Scheduling oversight.',
+      source: 'Admin portal',
       headcount: 1,
       metrics: [
         { label: 'Schedule fill rate', value: 84, format: 'percent', target: 85 },
         { label: 'Unit occupancy', value: 82, format: 'percent', target: 80 },
         { label: 'No-shows', value: r(96), format: 'number', lowerIsBetter: true },
-        { label: 'Staff on shift', value: 8, format: 'number' },
+        { label: 'Company goals tracked', value: 7, format: 'number' },
       ],
       leaderboard: [{ name: 'Shibani', metric: 84, format: 'percent' }],
     },
@@ -556,73 +617,94 @@ interface EmployeeSeed {
 }
 
 const EMPLOYEE_SEEDS: EmployeeSeed[] = [
-  // Provider
   { id: 'e1', name: 'Dr. Drannikov', role: 'Provider', roleId: 'provider', utilizationPct: 96, revenue: 96_400, metrics: [
-    { label: 'Patients seen', value: 540, format: 'number' },
-    { label: 'EBOOs performed', value: 188, format: 'number' },
-    { label: 'Procedures', value: 420, format: 'number' },
-    { label: 'IVs supervised', value: 1_540, format: 'number' },
+    { label: 'New patient appts', value: 96, format: 'number' },
+    { label: 'Established appts', value: 444, format: 'number' },
+    { label: 'Acupuncture', value: 84, format: 'number' },
+    { label: 'Trigger points', value: 62, format: 'number' },
+    { label: 'Hormone consults', value: 58, format: 'number' },
+    { label: 'PRP procedures', value: 34, format: 'number' },
   ] },
-  // New Patient Advisor
-  { id: 'e2', name: 'Marie', role: 'New Patient Advisor', roleId: 'newPatient', utilizationPct: 92, revenue: 24_000, metrics: [
-    { label: 'Leads', value: 420, format: 'number' },
-    { label: 'Outbound calls', value: 1_180, format: 'number' },
+  { id: 'e2', name: 'Brock', role: 'Physician Associate', roleId: 'pa', utilizationPct: 91, revenue: 58_200, metrics: [
+    { label: 'Patients seen', value: 386, format: 'number' },
+    { label: 'Procedures', value: 248, format: 'number' },
+    { label: 'EBOO clearances', value: 84, format: 'number' },
+    { label: 'Follow-ups', value: 212, format: 'number' },
+  ] },
+  { id: 'e3', name: 'Marie', role: 'New Patient Advisor', roleId: 'newPatient', utilizationPct: 92, revenue: 24_000, metrics: [
+    { label: 'Calls', value: 1_180, format: 'number' },
+    { label: 'Messages', value: 940, format: 'number' },
+    { label: 'Texts', value: 1_460, format: 'number' },
     { label: 'Onboarded', value: 132, format: 'number' },
-    { label: 'On waitlist', value: 58, format: 'number' },
   ] },
-  // Front Desk
-  { id: 'e3', name: 'Jazzmine', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 94, revenue: 38_600, metrics: [
-    { label: 'Patient collection', value: 38_600, format: 'currency' },
-    { label: 'Inbound calls', value: 2_140, format: 'number' },
-    { label: 'Calls answered', value: 1_840, format: 'number' },
+  { id: 'e4', name: 'Yazmine', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 94, revenue: 24_100, metrics: [
+    { label: 'Cash sales', value: 24_100, format: 'currency' },
+    { label: 'Inbound calls', value: 1_180, format: 'number' },
+    { label: 'Calls answered', value: 1_020, format: 'number' },
     { label: '% answered', value: 86, format: 'percent' },
-    { label: 'Avg call duration', value: 4.2, format: 'minutes' },
-    { label: 'Outbound calls', value: 960, format: 'number' },
+    { label: 'Avg call duration', value: 4.1, format: 'minutes' },
+    { label: 'Outbound calls', value: 520, format: 'number' },
   ] },
-  // Medical Assistants
-  { id: 'e4', name: 'Charlenne (Remote)', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 91, revenue: 14_200, metrics: [
-    { label: 'Vitals taken', value: 820, format: 'number' },
-    { label: 'Procedures', value: 540, format: 'number' },
-    { label: 'EBOO booked', value: 78, format: 'number' },
-    { label: 'IVs administered', value: 560, format: 'number' },
-    { label: 'Stars', value: 580, format: 'number' },
-    { label: 'Misses', value: 24, format: 'number', lowerIsBetter: true },
+  { id: 'e5', name: 'Heily', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 86, revenue: 18_600, metrics: [
+    { label: 'Cash sales', value: 18_600, format: 'currency' },
+    { label: 'Inbound calls', value: 960, format: 'number' },
+    { label: 'Calls answered', value: 820, format: 'number' },
+    { label: '% answered', value: 85, format: 'percent' },
+    { label: 'Avg call duration', value: 4.6, format: 'minutes' },
+    { label: 'Outbound calls', value: 440, format: 'number' },
   ] },
-  { id: 'e5', name: 'Bee', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 88, revenue: 12_800, metrics: [
-    { label: 'Vitals taken', value: 760, format: 'number' },
-    { label: 'Procedures', value: 498, format: 'number' },
-    { label: 'EBOO booked', value: 70, format: 'number' },
-    { label: 'IVs administered', value: 520, format: 'number' },
-    { label: 'Stars', value: 540, format: 'number' },
-    { label: 'Misses', value: 26, format: 'number', lowerIsBetter: true },
+  { id: 'e6', name: 'Charlene (Virtual)', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 91, revenue: 14_200, metrics: [
+    { label: 'Vitals taken', value: 1_240, format: 'number' },
+    { label: 'Procedures', value: 780, format: 'number' },
+    { label: 'Prescription refills', value: 340, format: 'number' },
+    { label: 'Patient inquiries', value: 590, format: 'number' },
   ] },
-  { id: 'e6', name: 'Heyli', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 84, revenue: 11_100, metrics: [
-    { label: 'Vitals taken', value: 730, format: 'number' },
-    { label: 'Procedures', value: 442, format: 'number' },
-    { label: 'EBOO booked', value: 64, format: 'number' },
-    { label: 'IVs administered', value: 460, format: 'number' },
-    { label: 'Stars', value: 500, format: 'number' },
-    { label: 'Misses', value: 28, format: 'number', lowerIsBetter: true },
+  { id: 'e7', name: 'Bee', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 88, revenue: 12_800, metrics: [
+    { label: 'Vitals taken', value: 1_070, format: 'number' },
+    { label: 'Procedures', value: 700, format: 'number' },
+    { label: 'Prescription refills', value: 300, format: 'number' },
+    { label: 'Patient inquiries', value: 530, format: 'number' },
   ] },
-  // RCM / Billing
-  { id: 'e7', name: 'Karina', role: 'RCM / Billing', roleId: 'rcm', utilizationPct: 93, revenue: 21_400, metrics: [
+  { id: 'e8', name: 'Bea', role: 'Medic', roleId: 'medic', utilizationPct: 93, revenue: 30_400, metrics: [
+    { label: 'IVs administered', value: 1_540, format: 'number' },
+    { label: 'Stars', value: 1_620, format: 'number' },
+    { label: 'Misses', value: 74, format: 'number', lowerIsBetter: true },
+    { label: 'IVs booked', value: 1_720, format: 'number' },
+    { label: 'Open charts', value: 38, format: 'number', lowerIsBetter: true },
+    { label: 'Unlocked notes', value: 21, format: 'number', lowerIsBetter: true },
+  ] },
+  { id: 'e9', name: 'Nic', role: 'Nurse', roleId: 'nurse', utilizationPct: 95, revenue: 41_600, metrics: [
+    { label: 'EBOOs performed', value: 188, format: 'number' },
+    { label: 'EBOO booked', value: 212, format: 'number' },
+    { label: 'IVs administered', value: 620, format: 'number' },
+  ] },
+  { id: 'e10', name: 'Vignesh', role: 'Billing', roleId: 'billing', utilizationPct: 93, revenue: 52_300, metrics: [
+    { label: 'Insurance collections', value: 52_300, format: 'currency' },
     { label: 'Claims submitted', value: 420, format: 'number' },
     { label: 'Avg days to submit', value: 1.6, format: 'days', lowerIsBetter: true },
-    { label: 'Denial rate', value: 9, format: 'percent', lowerIsBetter: true },
-    { label: 'Patient collections', value: 21_400, format: 'currency' },
+    { label: 'Appeals sent', value: 18, format: 'number' },
   ] },
-  { id: 'e8', name: 'Bea', role: 'RCM / Billing', roleId: 'rcm', utilizationPct: 86, revenue: 17_200, metrics: [
+  { id: 'e11', name: 'Kamalesh', role: 'Billing', roleId: 'billing', utilizationPct: 88, revenue: 46_100, metrics: [
+    { label: 'Insurance collections', value: 46_100, format: 'currency' },
     { label: 'Claims submitted', value: 362, format: 'number' },
     { label: 'Avg days to submit', value: 2.0, format: 'days', lowerIsBetter: true },
-    { label: 'Denial rate', value: 12, format: 'percent', lowerIsBetter: true },
-    { label: 'Patient collections', value: 17_200, format: 'currency' },
+    { label: 'Appeals sent', value: 16, format: 'number' },
   ] },
-  // Office Manager
-  { id: 'e9', name: 'Shibani', role: 'Office Manager', roleId: 'admin', utilizationPct: 90, revenue: 0, metrics: [
+  { id: 'e12', name: 'Maine', role: 'Operations Manager', roleId: 'ops', utilizationPct: 90, revenue: 0, metrics: [
+    { label: 'Avg days of appts / provider', value: 6.2, format: 'days' },
+    { label: 'Active pts w/o next appt', value: 214, format: 'number', lowerIsBetter: true },
+    { label: 'Revenue per employee', value: 23_300, format: 'currency' },
+    { label: 'Days to next new-pt visit', value: 4.6, format: 'days', lowerIsBetter: true },
+  ] },
+  { id: 'e13', name: 'Shibani', role: 'Admin', roleId: 'admin', utilizationPct: 90, revenue: 0, metrics: [
     { label: 'Schedule fill rate', value: 84, format: 'percent' },
     { label: 'Unit occupancy', value: 82, format: 'percent' },
     { label: 'No-shows', value: 96, format: 'number', lowerIsBetter: true },
-    { label: 'Staff on shift', value: 8, format: 'number' },
+    { label: 'Goals tracked', value: 7, format: 'number' },
+  ] },
+  { id: 'e14', name: 'Tom', role: 'Executive', roleId: 'exec', utilizationPct: 100, revenue: 0, metrics: [
+    { label: 'Company goals on track', value: 5, format: 'number' },
+    { label: 'Weekly reviews held', value: 4, format: 'number' },
   ] },
 ]
 
@@ -778,12 +860,14 @@ export function getEmployeesToday(): TodayEmployee[] {
   // Who's on shift today (a realistic subset of the roster).
   const shift: Record<string, { patients: number; revenue: number; target: number }> = {
     e1: { patients: 18, revenue: 4_800, target: 4_500 }, // Dr. Drannikov
-    e2: { patients: 9, revenue: 1_900, target: 2_000 }, // Marie
-    e3: { patients: 24, revenue: 2_100, target: 2_400 }, // Jazzmine
-    e4: { patients: 12, revenue: 980, target: 900 }, // Charlenne
-    e5: { patients: 10, revenue: 820, target: 900 }, // Bee
-    e6: { patients: 9, revenue: 760, target: 900 }, // Heyli
-    e7: { patients: 0, revenue: 1_480, target: 1_300 }, // Karina (RCM)
+    e2: { patients: 14, revenue: 2_900, target: 2_800 }, // Brock (PA)
+    e3: { patients: 9, revenue: 1_900, target: 2_000 }, // Marie
+    e4: { patients: 24, revenue: 2_100, target: 2_400 }, // Yazmine
+    e5: { patients: 19, revenue: 1_700, target: 2_000 }, // Heily
+    e6: { patients: 12, revenue: 980, target: 900 }, // Charlene
+    e7: { patients: 10, revenue: 820, target: 900 }, // Bee
+    e8: { patients: 16, revenue: 1_450, target: 1_300 }, // Bea (Medic)
+    e9: { patients: 7, revenue: 3_100, target: 2_800 }, // Nic (Nurse)
   }
   return EMPLOYEE_SEEDS.map((e) => {
     const s = shift[e.id]
@@ -902,7 +986,10 @@ export function getInsuranceKpis(): Kpi[] {
     { id: 'claims-yesterday', label: 'Claims sent yesterday', value: 47, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Number of claims submitted' },
     { id: 'days-to-submit', label: 'Avg days to submit', value: 1.8, format: 'days', deltaPct: -8.0, trend: 'down', lowerIsBetter: true, hint: 'Encounter → claim sent' },
     { id: 'days-to-pay', label: 'Avg days to pay', value: 38, format: 'days', deltaPct: -3.0, trend: 'down', lowerIsBetter: true, hint: 'Weighted across payers' },
-    { id: 'denial-rate', label: 'Denial rate', value: 11, format: 'percent', deltaPct: 1.5, trend: 'up', lowerIsBetter: true, hint: '% of claims denied' },
+    { id: 'denial-rate', label: 'Total denial rate', value: 11, format: 'percent', deltaPct: 1.5, trend: 'up', lowerIsBetter: true, hint: '86 claims denied (11%)' },
+    { id: 'claims-not-sent', label: 'Claims not sent (today)', value: 12, format: 'number', deltaPct: -14.0, trend: 'down', lowerIsBetter: true, hint: 'Filed but not submitted yet' },
+    { id: 'appeals-sent', label: 'Appeals sent', value: 34, format: 'number', deltaPct: 6.0, trend: 'up', hint: '41 claims appealed' },
+    { id: 'claims-paid', label: 'Claims paid', value: 612, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Paid in full this period' },
     { id: 'outstanding-ar', label: 'Outstanding A/R', value: 412_900, format: 'currency', deltaPct: 2.0, trend: 'up', lowerIsBetter: true, hint: 'Owed by insurers (billed)' },
   ]
 }
@@ -920,11 +1007,23 @@ export function getClaimsByPayer(): PayerClaims[] {
 
 export function getDenials(): DenialCategory[] {
   return [
-    { category: 'Office visits', denials: 18, delayDays: 22 },
-    { category: 'IVs', denials: 41, delayDays: 35 },
-    { category: 'Diagnostics', denials: 27, delayDays: 28 },
-    { category: 'Procedures', denials: 33, delayDays: 44 },
-    { category: 'Labs', denials: 15, delayDays: 19 },
+    { category: 'Office visits', denials: 18 },
+    { category: 'IVs', denials: 41 },
+    { category: 'Diagnostics', denials: 27 },
+    { category: 'Procedures', denials: 33 },
+    { category: 'Labs', denials: 15 },
+  ]
+}
+
+/** A/R aging by payer: outstanding money + open claims per age bucket. */
+export function getAgingByPayer(): AgingRow[] {
+  return [
+    { payer: 'BlueShield', claims: 96, b0_30: 22_000, b31_60: 28_000, b61_90: 31_000, b90plus: 46_000 },
+    { payer: 'Aetna', claims: 61, b0_30: 26_000, b31_60: 22_400, b61_90: 18_700, b90plus: 17_000 },
+    { payer: 'Cigna', claims: 44, b0_30: 21_300, b31_60: 17_000, b61_90: 13_000, b90plus: 11_000 },
+    { payer: 'UnitedHealthcare', claims: 58, b0_30: 24_100, b31_60: 21_000, b61_90: 19_000, b90plus: 20_000 },
+    { payer: 'Medicare', claims: 37, b0_30: 18_400, b31_60: 11_000, b61_90: 6_000, b90plus: 4_000 },
+    { payer: 'Humana', claims: 29, b0_30: 12_000, b31_60: 9_400, b61_90: 8_600, b90plus: 6_000 },
   ]
 }
 
@@ -997,6 +1096,7 @@ export function getMarketingKpis(channel: MarketingChannelKey = 'all'): Kpi[] {
         { id: 'emails-sent', label: 'Emails sent', value: 18_900, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Mailchimp campaigns' },
         { id: 'open-rate', label: 'Email open rate', value: 38, format: 'percent', deltaPct: 2.0, trend: 'up', hint: 'Avg across campaigns' },
         { id: 'mktg-leads', label: 'Leads from marketing', value: 286, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'Attributed to campaigns' },
+        { id: 'g-reviews', label: 'Google reviews', value: 312, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Avg rating 4.8 stars on Google Business' },
       ]
   }
 }
@@ -1040,11 +1140,47 @@ export function getEmailCampaigns(): EmailCampaign[] {
 // -----------------------------------------------------------------------------
 // TREATMENTS (occupancy or revenue by modality)
 // -----------------------------------------------------------------------------
-export function getTreatments(): Treatment[] {
-  return SERVICE_CATALOG.map((s) => ({
-    name: s.name,
-    treatments: s.treatments,
-    occupancyPct: s.occupancyPct,
-    revenue: s.revenue,
+export function getTreatments(scale: number = 1, payment: PaymentType = 'all'): Treatment[] {
+  const share = paymentShare(payment)
+  return SERVICE_CATALOG.map((t) => ({
+    name: t.name,
+    treatments: Math.round(t.treatments * scale),
+    occupancyPct: t.occupancyPct,
+    revenue: Math.round(t.revenue * scale * share),
+    capacity: t.capacity,
+    booked: t.booked,
+  }))
+}
+
+const TREND_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+
+/** 6-month trend for one treatment (for the click-through trend view). */
+export function getTreatmentTrend(name: string) {
+  const t = SERVICE_CATALOG.find((x) => x.name === name)
+  if (!t) return []
+  return TREND_MONTHS.map((label, i) => ({
+    label,
+    revenue: Math.round(t.revenue * (0.74 + i * 0.052) * (1 + (seeded(i, name.length) - 0.5) * 0.06)),
+    treatments: Math.round(t.treatments * (0.74 + i * 0.052)),
+    occupancyPct: Math.min(100, Math.round(t.occupancyPct * (0.85 + i * 0.03))),
+  }))
+}
+
+/** 6-month revenue trend per employee (to spot low performance over time). */
+export function getEmployeeTrend(id: string) {
+  const e = EMPLOYEE_SEEDS.find((x) => x.id === id)
+  if (!e) return []
+  const base = Math.max(1_500, e.revenue)
+  return TREND_MONTHS.map((label, i) => ({
+    label,
+    revenue: Math.round(base * (0.72 + i * 0.056) * (1 + (seeded(i, id.length + e.name.length) - 0.5) * 0.12)),
+  }))
+}
+
+/** 6-month trend for any marketing KPI (clickable blocks). */
+export function getMarketingMetricTrend(metricId: string, current: number) {
+  return TREND_MONTHS.map((label, i) => ({
+    label,
+    value: Math.round(current * (0.72 + i * 0.056) * (1 + (seeded(i, metricId.length) - 0.5) * 0.08)),
   }))
 }

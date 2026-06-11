@@ -25,6 +25,7 @@ import {
   getEmailCampaigns,
   getMarketingChannels,
   getMarketingKpis,
+  getMarketingMetricTrend,
   MARKETING_CHANNEL_LABELS,
   type MarketingChannelKey,
 } from '../data/mockData'
@@ -42,12 +43,24 @@ const CHANNEL_ICONS: Record<MarketingChannelKey, typeof Layers> = {
 }
 
 export default function Marketing() {
-  const [channel, setChannel] = useState<MarketingChannelKey>('all')
+  const [channel, setChannelRaw] = useState<MarketingChannelKey>('all')
+  const [selectedKpi, setSelectedKpi] = useState<string | null>(null)
   const kpis = getMarketingKpis(channel)
   const channels = getMarketingChannels()
   const campaigns = getEmailCampaigns()
-  const trend = getChannelTrend(channel)
   const isAll = channel === 'all'
+
+  const setChannel = (c: MarketingChannelKey) => {
+    setChannelRaw(c)
+    setSelectedKpi(null)
+  }
+
+  // Trend: the clicked KPI block wins; otherwise the channel's default metric.
+  const selected = selectedKpi ? kpis.find((k) => k.id === selectedKpi) ?? null : null
+  const channelTrend = getChannelTrend(channel)
+  const trend = selected
+    ? { metric: selected.label, points: getMarketingMetricTrend(selected.id, selected.value) }
+    : channelTrend
 
   return (
     <div className="space-y-6">
@@ -73,12 +86,18 @@ export default function Marketing() {
         })}
       </div>
 
-      {/* KPIs (per channel) */}
+      {/* KPIs (per channel) — click a block to see its trend over time */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
+          <KpiCard
+            key={k.id}
+            kpi={k}
+            active={selectedKpi === k.id}
+            onClick={() => setSelectedKpi(selectedKpi === k.id ? null : k.id)}
+          />
         ))}
       </div>
+      <p className="-mt-3 text-xs text-slate-400">Click any block to see its trend over time.</p>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Channel trend */}

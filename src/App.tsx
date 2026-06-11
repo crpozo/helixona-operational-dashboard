@@ -27,7 +27,7 @@ const PAGE_META: Record<
   marketing: { title: 'Marketing', subtitle: 'Channels, followers, web, and email campaigns', period: false, payment: false },
   team: { title: 'Team & Roles', subtitle: 'KPIs by role and per-person performance', period: true, payment: false },
   employees: { title: 'Employees', subtitle: 'Per-employee metrics, revenue, and productivity', period: true, payment: true },
-  treatments: { title: 'Treatments', subtitle: 'Revenue or occupancy by treatment, and unit usage', period: false, payment: false },
+  treatments: { title: 'Treatments', subtitle: 'Revenue or occupancy by treatment, and unit usage', period: true, payment: true },
 }
 
 export default function App() {
@@ -66,7 +66,7 @@ export default function App() {
           {page === 'marketing' && <Marketing />}
           {page === 'team' && <Team scale={scale} />}
           {page === 'employees' && <Employees scale={scale} payment={payment} />}
-          {page === 'treatments' && <Treatments />}
+          {page === 'treatments' && <Treatments scale={scale} payment={payment} />}
         </main>
       </div>
     </div>

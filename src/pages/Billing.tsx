@@ -14,6 +14,7 @@ import { Download } from 'lucide-react'
 import Card from '../components/Card'
 import KpiCard from '../components/KpiCard'
 import {
+  getAgingByPayer,
   getBillingTrend,
   getClaimsByPayer,
   getDenials,
@@ -74,6 +75,19 @@ export default function Billing() {
     [payers, payerFilter],
   )
   const totalOwed = rows.reduce((s, p) => s + owed(p), 0)
+
+  // A/R aging (respects the insurance filter)
+  const aging = getAgingByPayer().filter((a) => payerFilter === 'All' || a.payer === payerFilter)
+  const agingTotal = (a: (typeof aging)[number]) => a.b0_30 + a.b31_60 + a.b61_90 + a.b90plus
+  const agingMoney = aging.reduce((s, a) => s + agingTotal(a), 0)
+  const agingClaims = aging.reduce((s, a) => s + a.claims, 0)
+
+  const exportAging = () =>
+    downloadCsv(
+      'ar-aging-by-payer.csv',
+      ['Payer', 'Open claims', '0-30 days', '31-60 days', '61-90 days', '90+ days', 'Total outstanding'],
+      aging.map((a) => [a.payer, a.claims, a.b0_30, a.b31_60, a.b61_90, a.b90plus, agingTotal(a)]),
+    )
 
   const exportClaims = () =>
     downloadCsv(
@@ -156,13 +170,13 @@ export default function Billing() {
         </Card>
 
         {/* Denials by category */}
-        <Card title="Denials by category" subtitle="Count and avg delay (days)">
+        <Card title="Denials by category" subtitle="# of denials">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={denials} layout="vertical" margin={{ left: 8, right: 16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="category" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={80} />
-              <Tooltip formatter={(v: number, n) => [n === 'denials' ? `${v} denials` : `${v} days`, n === 'denials' ? 'Denials' : 'Avg delay']} />
+              <Tooltip formatter={(v: number) => [`${v} denials`, 'Denials']} />
               <Bar dataKey="denials" radius={[0, 4, 4, 0]} barSize={14}>
                 {denials.map((_, i) => (
                   <Cell key={i} fill={CATEGORICAL[i % CATEGORICAL.length]} />
@@ -231,6 +245,66 @@ export default function Billing() {
                   <td className={`py-2.5 text-right tabular-nums ${p.denialRate >= 12 ? 'font-semibold text-rose-600' : 'text-slate-600'}`}>
                     {p.denialRate}%
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* A/R aging: how much money and how many claims, per insurance */}
+      <Card
+        title="A/R aging by insurance"
+        subtitle={`${formatValue(agingMoney, 'currency')} outstanding across ${agingClaims} open claims`}
+        action={
+          <button
+            onClick={exportAging}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-brand-300 hover:text-brand-700"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export report
+          </button>
+        }
+      >
+        <ResponsiveContainer width="100%" height={Math.max(160, aging.length * 44 + 60)}>
+          <BarChart data={aging} layout="vertical" margin={{ left: 24, right: 16 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" horizontal={false} />
+            <XAxis type="number" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
+            <YAxis type="category" dataKey="payer" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={120} />
+            <Tooltip formatter={(v: number) => formatCompact(v, 'currency')} />
+            <Legend iconType="circle" />
+            <Bar dataKey="b0_30" name="0-30 days" stackId="a" fill="#cbb892" />
+            <Bar dataKey="b31_60" name="31-60 days" stackId="a" fill={COLORS.cash} />
+            <Bar dataKey="b61_90" name="61-90 days" stackId="a" fill="#8a6d3b" />
+            <Bar dataKey="b90plus" name="90+ days" stackId="a" fill="#1c1c1c" radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                <th className="pb-2 font-semibold">Payer</th>
+                <th className="pb-2 text-right font-semibold">Open claims</th>
+                <th className="pb-2 text-right font-semibold">0-30d</th>
+                <th className="pb-2 text-right font-semibold">31-60d</th>
+                <th className="pb-2 text-right font-semibold">61-90d</th>
+                <th className="pb-2 text-right font-semibold">90+d</th>
+                <th className="pb-2 text-right font-semibold">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {aging.map((a) => (
+                <tr key={a.payer} className="border-b border-slate-100 last:border-0">
+                  <td className="py-2.5 font-medium text-ink-900">{a.payer}</td>
+                  <td className="py-2.5 text-right tabular-nums text-slate-600">{a.claims}</td>
+                  <td className="py-2.5 text-right tabular-nums text-slate-600">{formatValue(a.b0_30, 'currency')}</td>
+                  <td className="py-2.5 text-right tabular-nums text-slate-600">{formatValue(a.b31_60, 'currency')}</td>
+                  <td className="py-2.5 text-right tabular-nums text-slate-600">{formatValue(a.b61_90, 'currency')}</td>
+                  <td className={`py-2.5 text-right tabular-nums ${a.b90plus > 20_000 ? 'font-semibold text-rose-600' : 'text-slate-600'}`}>
+                    {formatValue(a.b90plus, 'currency')}
+                  </td>
+                  <td className="py-2.5 text-right tabular-nums font-semibold text-ink-900">{formatValue(agingTotal(a), 'currency')}</td>
                 </tr>
               ))}
             </tbody>

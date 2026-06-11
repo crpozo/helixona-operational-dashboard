@@ -12,10 +12,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AlertTriangle, Info, ShieldAlert, X } from 'lucide-react'
+import { AlertTriangle, Info, Plus, ShieldAlert, X } from 'lucide-react'
 import Card from '../components/Card'
 import KpiCard from '../components/KpiCard'
-import type { PaymentType } from '../types'
+import type { Goal, PaymentType } from '../types'
 import {
   getAlerts,
   getExecutiveKpis,
@@ -43,9 +43,34 @@ export default function Overview({ scale, payment }: Props) {
   const revenue = getRevenueTrend(payment)
   const funnel = getPatientFunnel(scale)
   const modalities = getModalityBreakdown(scale, payment)
-  const goals = getGoals()
   const [dismissed, setDismissed] = useState<string[]>([])
   const alerts = getAlerts().filter((a) => !dismissed.includes(a.id))
+
+  // Admin: company goals added at runtime (placeholder until persisted via API)
+  const [customGoals, setCustomGoals] = useState<Goal[]>([])
+  const [showGoalForm, setShowGoalForm] = useState(false)
+  const [draft, setDraft] = useState({ label: '', area: '', value: '', target: '', lowerIsBetter: false })
+  const goals = [...getGoals(), ...customGoals]
+
+  const addGoal = () => {
+    const value = Number(draft.value)
+    const target = Number(draft.target)
+    if (!draft.label.trim() || !Number.isFinite(value) || !Number.isFinite(target) || target <= 0) return
+    setCustomGoals((g) => [
+      ...g,
+      {
+        id: `custom-${Date.now()}`,
+        label: draft.label.trim(),
+        area: draft.area.trim() || 'Company',
+        value,
+        target,
+        format: 'number',
+        lowerIsBetter: draft.lowerIsBetter,
+      },
+    ])
+    setDraft({ label: '', area: '', value: '', target: '', lowerIsBetter: false })
+    setShowGoalForm(false)
+  }
 
   return (
     <div className="space-y-6">
@@ -181,8 +206,76 @@ export default function Overview({ scale, payment }: Props) {
         </Card>
       </div>
 
-      {/* Goals — these drive the alerts above */}
-      <Card title="Goals" subtitle="Targets that trigger the alerts">
+      {/* Goals — these drive the alerts above; admins can add company goals */}
+      <Card
+        title="Goals"
+        subtitle="Targets that trigger the alerts · Admin can add company goals"
+        action={
+          <button
+            onClick={() => setShowGoalForm((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-brand-300 hover:text-brand-700"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add goal
+          </button>
+        }
+      >
+        {showGoalForm && (
+          <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-brand-200 bg-brand-50/50 p-3">
+            <div>
+              <p className="mb-1 text-[11px] font-medium text-slate-500">Goal name</p>
+              <input
+                value={draft.label}
+                onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+                placeholder="e.g. EBOOs per month"
+                className="w-44 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-brand-400"
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] font-medium text-slate-500">Area</p>
+              <input
+                value={draft.area}
+                onChange={(e) => setDraft({ ...draft, area: e.target.value })}
+                placeholder="e.g. Nurses"
+                className="w-28 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-brand-400"
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] font-medium text-slate-500">Current</p>
+              <input
+                value={draft.value}
+                onChange={(e) => setDraft({ ...draft, value: e.target.value })}
+                placeholder="0"
+                inputMode="numeric"
+                className="w-20 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-brand-400"
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] font-medium text-slate-500">Target</p>
+              <input
+                value={draft.target}
+                onChange={(e) => setDraft({ ...draft, target: e.target.value })}
+                placeholder="100"
+                inputMode="numeric"
+                className="w-20 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-brand-400"
+              />
+            </div>
+            <label className="flex items-center gap-1.5 pb-1.5 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                checked={draft.lowerIsBetter}
+                onChange={(e) => setDraft({ ...draft, lowerIsBetter: e.target.checked })}
+              />
+              Lower is better
+            </label>
+            <button
+              onClick={addGoal}
+              className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-semibold text-ink-900 transition hover:bg-brand-400"
+            >
+              Save goal
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {goals.map((g) => {
             const breached = g.lowerIsBetter ? g.value > g.target : g.value < g.target

@@ -46,11 +46,16 @@ export interface FunnelStage {
 
 export type RoleId =
   | 'provider'
+  | 'pa'
   | 'newPatient'
   | 'frontDesk'
   | 'ma'
-  | 'rcm'
+  | 'medic'
+  | 'nurse'
+  | 'billing'
+  | 'ops'
   | 'admin'
+  | 'exec'
 
 export interface RoleMetric {
   label: string
@@ -164,7 +169,16 @@ export interface PayerClaims {
 export interface DenialCategory {
   category: string
   denials: number
-  delayDays: number
+}
+
+/** A/R aging for one payer: outstanding money and open claims by age bucket. */
+export interface AgingRow {
+  payer: string
+  claims: number
+  b0_30: number
+  b31_60: number
+  b61_90: number
+  b90plus: number
 }
 
 /** Marketing — one acquisition channel. */
@@ -188,6 +202,9 @@ export interface Treatment {
   treatments: number
   occupancyPct: number
   revenue: number
+  /** today's bookable spots for this treatment */
+  capacity: number
+  booked: number
 }
 
 export interface ModalityBreakdown {
