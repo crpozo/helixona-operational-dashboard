@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Route,
+  Settings,
   Stethoscope,
   Sun,
   Syringe,
@@ -24,6 +25,7 @@ export type PageId =
   | 'team'
   | 'employees'
   | 'treatments'
+  | 'admin'
 
 const NAV: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'today', label: 'Today', icon: Sun },
@@ -36,6 +38,7 @@ const NAV: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'team', label: 'Team & Roles', icon: Stethoscope },
   { id: 'employees', label: 'Employees', icon: UserCircle },
   { id: 'treatments', label: 'Treatments', icon: Syringe },
+  { id: 'admin', label: 'Admin', icon: Settings },
 ]
 
 interface Props {

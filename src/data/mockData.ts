@@ -948,11 +948,11 @@ function goalBreached(g: Goal): boolean {
 // -----------------------------------------------------------------------------
 // ALERTS — derived from goals that are off-target
 // -----------------------------------------------------------------------------
-export function getAlerts(): Alert[] {
+export function getAlerts(goals: Goal[] = getGoals()): Alert[] {
   const fmt = (v: number, f: Goal['format']) =>
     f === 'currency' ? `$${v.toLocaleString()}` : f === 'percent' ? `${v}%` : v.toLocaleString()
 
-  const fromGoals: Alert[] = getGoals()
+  const fromGoals: Alert[] = goals
     .filter(goalBreached)
     .map((g) => {
       const gap = Math.abs(g.value - g.target)

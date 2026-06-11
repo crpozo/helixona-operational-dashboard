@@ -11,8 +11,9 @@ import Marketing from './pages/Marketing'
 import Team from './pages/Team'
 import Employees from './pages/Employees'
 import Treatments from './pages/Treatments'
-import type { PaymentType, Period } from './types'
-import { formatPeriodLabel, getScale } from './data/mockData'
+import Admin from './pages/Admin'
+import type { Goal, PaymentType, Period } from './types'
+import { formatPeriodLabel, getGoals, getScale } from './data/mockData'
 
 const PAGE_META: Record<
   PageId,
@@ -28,12 +29,15 @@ const PAGE_META: Record<
   team: { title: 'Team & Roles', subtitle: 'KPIs by role and per-person performance', period: true, payment: false },
   employees: { title: 'Employees', subtitle: 'Per-employee metrics, revenue, and productivity', period: true, payment: true },
   treatments: { title: 'Treatments', subtitle: 'Revenue or occupancy by treatment, and unit usage', period: true, payment: true },
+  admin: { title: 'Admin', subtitle: 'Company goals, employees, and roles & permissions', period: false, payment: false },
 }
 
 export default function App() {
   const [page, setPage] = useState<PageId>('today')
   const [period, setPeriod] = useState<Period>({ kind: 'preset', preset: 'month' })
   const [payment, setPayment] = useState<PaymentType>('all')
+  // Company goals are managed in Admin and drive the Overview alerts.
+  const [goals, setGoals] = useState<Goal[]>(() => getGoals())
 
   const scale = useMemo(() => getScale(period), [period])
   const meta = PAGE_META[page]
@@ -58,7 +62,7 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
           {page === 'today' && <Today />}
-          {page === 'overview' && <Overview scale={scale} payment={payment} />}
+          {page === 'overview' && <Overview scale={scale} payment={payment} goals={goals} />}
           {page === 'revenue' && <Revenue scale={scale} payment={payment} />}
           {page === 'billing' && <Billing />}
           {page === 'patients' && <Patients scale={scale} payment={payment} />}
@@ -67,6 +71,7 @@ export default function App() {
           {page === 'team' && <Team scale={scale} />}
           {page === 'employees' && <Employees scale={scale} payment={payment} />}
           {page === 'treatments' && <Treatments scale={scale} payment={payment} />}
+          {page === 'admin' && <Admin goals={goals} onGoalsChange={setGoals} />}
         </main>
       </div>
     </div>
