@@ -22,10 +22,10 @@ const PAGE_META: Record<
   today: { title: 'Today', subtitle: 'Live daily snapshot of the operation', period: false, payment: false },
   overview: { title: 'Executive overview', subtitle: 'The whole operation at a glance', period: true, payment: true },
   revenue: { title: 'Revenue', subtitle: 'Estimated vs collected, mix, and ticket by modality', period: true, payment: true },
-  billing: { title: 'Insurance & Billing', subtitle: 'Claims, denials, and what payers owe', period: false, payment: false },
+  billing: { title: 'Insurance & Billing', subtitle: 'Claims, denials, and what payers owe', period: true, payment: false },
   patients: { title: 'Patients', subtitle: 'Funnel, new-patient pipeline, and modalities', period: true, payment: true },
   journey: { title: 'Patient Journey', subtitle: 'Where each patient is in the lifecycle', period: false, payment: false },
-  marketing: { title: 'Marketing', subtitle: 'Channels, followers, web, and email campaigns', period: false, payment: false },
+  marketing: { title: 'Marketing', subtitle: 'Channels, followers, web, and email campaigns', period: true, payment: false },
   team: { title: 'Team & Roles', subtitle: 'KPIs by role and per-person performance', period: true, payment: false },
   employees: { title: 'Employees', subtitle: 'Per-employee metrics, revenue, and productivity', period: true, payment: true },
   treatments: { title: 'Treatments', subtitle: 'Revenue or occupancy by treatment, and unit usage', period: true, payment: true },
@@ -64,10 +64,10 @@ export default function App() {
           {page === 'today' && <Today />}
           {page === 'overview' && <Overview scale={scale} payment={payment} goals={goals} />}
           {page === 'revenue' && <Revenue scale={scale} payment={payment} />}
-          {page === 'billing' && <Billing />}
+          {page === 'billing' && <Billing scale={scale} />}
           {page === 'patients' && <Patients scale={scale} payment={payment} />}
           {page === 'journey' && <PatientJourney />}
-          {page === 'marketing' && <Marketing />}
+          {page === 'marketing' && <Marketing scale={scale} />}
           {page === 'team' && <Team scale={scale} />}
           {page === 'employees' && <Employees scale={scale} payment={payment} />}
           {page === 'treatments' && <Treatments scale={scale} payment={payment} />}

@@ -12,11 +12,13 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AlertTriangle, Info, ShieldAlert, X } from 'lucide-react'
+import { AlertTriangle, Info, ShieldAlert, Sparkles, X } from 'lucide-react'
 import Card from '../components/Card'
 import KpiCard from '../components/KpiCard'
-import type { Goal, PaymentType } from '../types'
+import TrendPanel from '../components/TrendPanel'
+import type { Goal, Kpi, PaymentType } from '../types'
 import {
+  getAiInsights,
   getAlerts,
   getExecutiveKpis,
   getModalityBreakdown,
@@ -46,15 +48,47 @@ export default function Overview({ scale, payment, goals }: Props) {
   const modalities = getModalityBreakdown(scale, payment)
   const [dismissed, setDismissed] = useState<string[]>([])
   const alerts = getAlerts(goals).filter((a) => !dismissed.includes(a.id))
+  const [selKpi, setSelKpi] = useState<Kpi | null>(null)
+  const insights = getAiInsights()
 
   return (
     <div className="space-y-6">
-      {/* Executive KPIs */}
+      {/* Executive KPIs — click any block to see its trend over time */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
+          <KpiCard
+            key={k.id}
+            kpi={k}
+            active={selKpi?.id === k.id}
+            onClick={() => setSelKpi(selKpi?.id === k.id ? null : k)}
+          />
         ))}
       </div>
+      {selKpi && <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />}
+
+      {/* AI dashboard insights */}
+      <Card
+        title="AI insights"
+        subtitle="Auto-generated from your operational data"
+        action={
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
+            <Sparkles className="h-4 w-4" />
+          </span>
+        }
+      >
+        <ul className="space-y-2">
+          {insights.map((ins, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-sm">
+              <span
+                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                  ins.tone === 'positive' ? 'bg-emerald-500' : ins.tone === 'risk' ? 'bg-rose-500' : 'bg-amber-500'
+                }`}
+              />
+              <span className="text-slate-600">{ins.text}</span>
+            </li>
+          ))}
+        </ul>
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Revenue trend */}
@@ -130,10 +164,11 @@ export default function Overview({ scale, payment, goals }: Props) {
           <div className="space-y-2.5">
             {funnel.map((stage, i) => {
               const pct = Math.round((stage.count / funnel[0].count) * 100)
+              const denied = stage.stage.startsWith('Denied')
               return (
                 <div key={stage.stage}>
                   <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-600">{stage.stage}</span>
+                    <span className={`font-medium ${denied ? 'text-rose-600' : 'text-slate-600'}`}>{stage.stage}</span>
                     <span className="tabular-nums text-slate-500">
                       {stage.count.toLocaleString()} · {pct}%
                     </span>
@@ -141,7 +176,7 @@ export default function Overview({ scale, payment, goals }: Props) {
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
                       className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: CATEGORICAL[i % CATEGORICAL.length] }}
+                      style={{ width: `${pct}%`, background: denied ? '#e11d48' : CATEGORICAL[i % CATEGORICAL.length] }}
                     />
                   </div>
                 </div>

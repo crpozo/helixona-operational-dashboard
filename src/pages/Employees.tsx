@@ -34,6 +34,7 @@ const ROLE_FILTERS = [
   'Medical Assistant',
   'Medic',
   'Nurse',
+  'Technician',
   'Billing',
   'Operations Manager',
   'Admin',

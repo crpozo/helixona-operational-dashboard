@@ -247,6 +247,7 @@ export function getPatientFunnel(scale: number): FunnelStage[] {
     { stage: 'Onboarding', count: Math.round(204 * scale) },
     { stage: 'Patients', count: Math.round(132 * scale) },
     { stage: '1st appt. booked', count: Math.round(96 * scale) },
+    { stage: 'Denied / declined', count: Math.round(44 * scale) },
   ]
 }
 
@@ -321,8 +322,12 @@ export function getRoles(scale: number): Role[] {
         { label: 'Trigger point injections', value: r(62), format: 'number' },
         { label: 'Hormone consults', value: r(58), format: 'number' },
         { label: 'PRP procedures', value: r(34), format: 'number' },
+        { label: 'Unlocked charts', value: r(14), format: 'number', lowerIsBetter: true },
       ],
-      leaderboard: [{ name: 'Dr. Drannikov', metric: r(540), format: 'number' }],
+      leaderboard: [
+        { name: 'Dr. Drannikov', metric: r(540), format: 'number' },
+        { name: 'Tom', metric: r(312), format: 'number' },
+      ],
     },
     {
       id: 'pa',
@@ -335,6 +340,7 @@ export function getRoles(scale: number): Role[] {
         { label: 'Procedures', value: r(248), format: 'number' },
         { label: 'EBOO clearances', value: r(84), format: 'number' },
         { label: 'Follow-ups', value: r(212), format: 'number' },
+        { label: 'Unlocked charts', value: r(9), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [{ name: 'Brock', metric: r(386), format: 'number' }],
     },
@@ -365,6 +371,8 @@ export function getRoles(scale: number): Role[] {
         { label: 'Copays & deductibles', value: r(18_300), format: 'currency' },
         { label: 'Inbound calls', value: r(2_140), format: 'number' },
         { label: 'Calls answered', value: r(1_840), format: 'number' },
+        { label: 'Missed calls', value: r(300), format: 'number', lowerIsBetter: true },
+        { label: 'Voicemails', value: r(180), format: 'number' },
         { label: '% inbound answered', value: 86, format: 'percent', target: 90 },
         { label: 'Avg call duration', value: 4.2, format: 'minutes' },
       ],
@@ -383,7 +391,9 @@ export function getRoles(scale: number): Role[] {
         { label: 'Vitals taken', value: r(2_310), format: 'number' },
         { label: 'Procedures', value: r(1_480), format: 'number' },
         { label: 'Prescription refills', value: r(640), format: 'number' },
-        { label: 'Patient inquiries', value: r(1_120), format: 'number' },
+        { label: 'Patient messages', value: r(1_120), format: 'number' },
+        { label: 'Plan of care releases', value: r(420), format: 'number' },
+        { label: 'Extension calls', value: r(560), format: 'number' },
       ],
       leaderboard: [
         { name: 'Charlene (Virtual)', metric: r(540), format: 'number' },
@@ -397,12 +407,11 @@ export function getRoles(scale: number): Role[] {
       source: 'ECW',
       headcount: 1,
       metrics: [
-        { label: 'IVs administered', value: r(1_540), format: 'number' },
-        { label: 'Stars', value: r(1_620), format: 'number' },
+        { label: 'Starts', value: r(1_620), format: 'number' },
         { label: 'Misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
         { label: 'Cost of misses', value: r(74) * 3.2, format: 'currency', lowerIsBetter: true },
+        { label: 'IVs administered', value: r(1_540), format: 'number' },
         { label: 'IVs booked', value: r(1_720), format: 'number' },
-        { label: 'Open charts', value: r(38), format: 'number', lowerIsBetter: true },
         { label: 'Unlocked notes', value: r(21), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [{ name: 'Bea', metric: r(1_540), format: 'number' }],
@@ -419,6 +428,21 @@ export function getRoles(scale: number): Role[] {
         { label: 'IVs administered', value: r(620), format: 'number' },
       ],
       leaderboard: [{ name: 'Nic', metric: r(188), format: 'number' }],
+    },
+    {
+      id: 'technician',
+      name: 'Technician · Kyle',
+      summary: 'Diagnostics, laser, eyedrop, BioCharger, and energetics sessions.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'Diagnostics executed', value: r(248), format: 'number' },
+        { label: 'Laser sessions', value: r(186), format: 'number' },
+        { label: 'Eyedrop procedures', value: r(142), format: 'number' },
+        { label: 'BioCharger sessions', value: r(96), format: 'number' },
+        { label: 'Energetics sessions', value: r(74), format: 'number' },
+      ],
+      leaderboard: [{ name: 'Kyle', metric: r(248), format: 'number' }],
     },
     {
       id: 'billing',
@@ -443,7 +467,7 @@ export function getRoles(scale: number): Role[] {
     },
     {
       id: 'ops',
-      name: 'Operations Manager · Maine',
+      name: 'Operations Manager · Karina',
       summary: 'Provider scheduling, patient retention, and team productivity.',
       source: 'ECW',
       headcount: 1,
@@ -453,7 +477,7 @@ export function getRoles(scale: number): Role[] {
         { label: 'Revenue per employee', value: r(23_300), format: 'currency' },
         { label: 'Days to next patient visit (new)', value: 4.6, format: 'days', lowerIsBetter: true },
       ],
-      leaderboard: [{ name: 'Maine', metric: 84, format: 'percent' }],
+      leaderboard: [{ name: 'Karina', metric: 84, format: 'percent' }],
     },
     {
       id: 'admin',
@@ -596,9 +620,9 @@ export function getNewPatientTeam() {
 export function getNewPatientPipeline(scale: number) {
   const r = (n: number) => Math.round(n * scale)
   return [
-    { status: 'New / pending', count: r(86), tone: 'brand' as const },
+    { status: 'Leads', count: r(86), tone: 'brand' as const },
     { status: 'Onboarded', count: r(132), tone: 'green' as const },
-    { status: 'Waitlist', count: r(58), tone: 'amber' as const },
+    { status: 'Waitlisted', count: r(58), tone: 'amber' as const },
     { status: 'Declined', count: r(44), tone: 'red' as const },
   ]
 }
@@ -624,12 +648,14 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Trigger points', value: 62, format: 'number' },
     { label: 'Hormone consults', value: 58, format: 'number' },
     { label: 'PRP procedures', value: 34, format: 'number' },
+    { label: 'Unlocked charts', value: 14, format: 'number', lowerIsBetter: true },
   ] },
   { id: 'e2', name: 'Brock', role: 'Physician Associate', roleId: 'pa', utilizationPct: 91, revenue: 58_200, metrics: [
     { label: 'Patients seen', value: 386, format: 'number' },
     { label: 'Procedures', value: 248, format: 'number' },
     { label: 'EBOO clearances', value: 84, format: 'number' },
     { label: 'Follow-ups', value: 212, format: 'number' },
+    { label: 'Unlocked charts', value: 9, format: 'number', lowerIsBetter: true },
   ] },
   { id: 'e3', name: 'Marie', role: 'New Patient Advisor', roleId: 'newPatient', utilizationPct: 92, revenue: 24_000, metrics: [
     { label: 'Calls', value: 1_180, format: 'number' },
@@ -657,20 +683,20 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Vitals taken', value: 1_240, format: 'number' },
     { label: 'Procedures', value: 780, format: 'number' },
     { label: 'Prescription refills', value: 340, format: 'number' },
-    { label: 'Patient inquiries', value: 590, format: 'number' },
+    { label: 'Patient messages', value: 590, format: 'number' },
   ] },
   { id: 'e7', name: 'Bee', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 88, revenue: 12_800, metrics: [
     { label: 'Vitals taken', value: 1_070, format: 'number' },
     { label: 'Procedures', value: 700, format: 'number' },
     { label: 'Prescription refills', value: 300, format: 'number' },
-    { label: 'Patient inquiries', value: 530, format: 'number' },
+    { label: 'Patient messages', value: 530, format: 'number' },
   ] },
   { id: 'e8', name: 'Bea', role: 'Medic', roleId: 'medic', utilizationPct: 93, revenue: 30_400, metrics: [
-    { label: 'IVs administered', value: 1_540, format: 'number' },
-    { label: 'Stars', value: 1_620, format: 'number' },
+    { label: 'Starts', value: 1_620, format: 'number' },
     { label: 'Misses', value: 74, format: 'number', lowerIsBetter: true },
+    { label: 'Cost of misses', value: 237, format: 'currency', lowerIsBetter: true },
+    { label: 'IVs administered', value: 1_540, format: 'number' },
     { label: 'IVs booked', value: 1_720, format: 'number' },
-    { label: 'Open charts', value: 38, format: 'number', lowerIsBetter: true },
     { label: 'Unlocked notes', value: 21, format: 'number', lowerIsBetter: true },
   ] },
   { id: 'e9', name: 'Nic', role: 'Nurse', roleId: 'nurse', utilizationPct: 95, revenue: 41_600, metrics: [
@@ -690,7 +716,7 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Avg days to submit', value: 2.0, format: 'days', lowerIsBetter: true },
     { label: 'Appeals sent', value: 16, format: 'number' },
   ] },
-  { id: 'e12', name: 'Maine', role: 'Operations Manager', roleId: 'ops', utilizationPct: 90, revenue: 0, metrics: [
+  { id: 'e12', name: 'Karina', role: 'Operations Manager', roleId: 'ops', utilizationPct: 90, revenue: 0, metrics: [
     { label: 'Avg days of appts / provider', value: 6.2, format: 'days' },
     { label: 'Active pts w/o next appt', value: 214, format: 'number', lowerIsBetter: true },
     { label: 'Revenue per employee', value: 23_300, format: 'currency' },
@@ -702,9 +728,18 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'No-shows', value: 96, format: 'number', lowerIsBetter: true },
     { label: 'Goals tracked', value: 7, format: 'number' },
   ] },
-  { id: 'e14', name: 'Tom', role: 'Executive', roleId: 'exec', utilizationPct: 100, revenue: 0, metrics: [
-    { label: 'Company goals on track', value: 5, format: 'number' },
-    { label: 'Weekly reviews held', value: 4, format: 'number' },
+  { id: 'e14', name: 'Tom', role: 'Provider', roleId: 'provider', utilizationPct: 94, revenue: 71_200, metrics: [
+    { label: 'New patient appts', value: 72, format: 'number' },
+    { label: 'Established appts', value: 312, format: 'number' },
+    { label: 'Procedures', value: 240, format: 'number' },
+    { label: 'Unlocked charts', value: 11, format: 'number', lowerIsBetter: true },
+  ] },
+  { id: 'e15', name: 'Kyle', role: 'Technician', roleId: 'technician', utilizationPct: 89, revenue: 18_400, metrics: [
+    { label: 'Diagnostics executed', value: 248, format: 'number' },
+    { label: 'Laser sessions', value: 186, format: 'number' },
+    { label: 'Eyedrop procedures', value: 142, format: 'number' },
+    { label: 'BioCharger sessions', value: 96, format: 'number' },
+    { label: 'Energetics sessions', value: 74, format: 'number' },
   ] },
 ]
 
@@ -861,6 +896,8 @@ export function getEmployeesToday(): TodayEmployee[] {
   const shift: Record<string, { patients: number; revenue: number; target: number }> = {
     e1: { patients: 18, revenue: 4_800, target: 4_500 }, // Dr. Drannikov
     e2: { patients: 14, revenue: 2_900, target: 2_800 }, // Brock (PA)
+    e14: { patients: 16, revenue: 3_600, target: 3_400 }, // Tom (Provider)
+    e15: { patients: 11, revenue: 720, target: 800 }, // Kyle (Technician)
     e3: { patients: 9, revenue: 1_900, target: 2_000 }, // Marie
     e4: { patients: 24, revenue: 2_100, target: 2_400 }, // Yazmine
     e5: { patients: 19, revenue: 1_700, target: 2_000 }, // Heily
@@ -980,16 +1017,17 @@ export function getAlerts(goals: Goal[] = getGoals()): Alert[] {
 // -----------------------------------------------------------------------------
 // INSURANCE / BILLING
 // -----------------------------------------------------------------------------
-export function getInsuranceKpis(): Kpi[] {
+export function getInsuranceKpis(scale: number = 1): Kpi[] {
+  const r = (n: number) => Math.round(n * scale)
   return [
     { id: 'billed-yesterday', label: 'Billed yesterday', value: 84_200, format: 'currency', deltaPct: 6.0, trend: 'up', hint: 'Claims submitted yesterday' },
     { id: 'claims-yesterday', label: 'Claims sent yesterday', value: 47, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Number of claims submitted' },
     { id: 'days-to-submit', label: 'Avg days to submit', value: 1.8, format: 'days', deltaPct: -8.0, trend: 'down', lowerIsBetter: true, hint: 'Encounter → claim sent' },
     { id: 'days-to-pay', label: 'Avg days to pay', value: 38, format: 'days', deltaPct: -3.0, trend: 'down', lowerIsBetter: true, hint: 'Weighted across payers' },
     { id: 'denial-rate', label: 'Total denial rate', value: 11, format: 'percent', deltaPct: 1.5, trend: 'up', lowerIsBetter: true, hint: '86 claims denied (11%)' },
-    { id: 'claims-not-sent', label: 'Claims not sent (today)', value: 12, format: 'number', deltaPct: -14.0, trend: 'down', lowerIsBetter: true, hint: 'Filed but not submitted yet' },
-    { id: 'appeals-sent', label: 'Appeals sent', value: 34, format: 'number', deltaPct: 6.0, trend: 'up', hint: '41 claims appealed' },
-    { id: 'claims-paid', label: 'Claims paid', value: 612, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Paid in full this period' },
+    { id: 'unlocked-claims', label: 'Unlocked claims (today)', value: 12, format: 'number', deltaPct: -14.0, trend: 'down', lowerIsBetter: true, hint: 'Claims not sent - waiting on unlocked charts/notes' },
+    { id: 'appeals-sent', label: 'Appeals sent in period', value: r(34), format: 'number', deltaPct: 6.0, trend: 'up', hint: '41 claims appealed' },
+    { id: 'claims-paid', label: 'Claims paid', value: r(612), format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Paid in full this period' },
     { id: 'outstanding-ar', label: 'Outstanding A/R', value: 412_900, format: 'currency', deltaPct: 2.0, trend: 'up', lowerIsBetter: true, hint: 'Owed by insurers (billed)' },
   ]
 }
@@ -1042,13 +1080,16 @@ export function getBillingTrend(): { label: string; billed: number; collected: n
 // -----------------------------------------------------------------------------
 // MARKETING
 // -----------------------------------------------------------------------------
-export type MarketingChannelKey = 'all' | 'web' | 'instagram' | 'facebook' | 'email'
+export type MarketingChannelKey = 'all' | 'web' | 'instagram' | 'facebook' | 'x' | 'tiktok' | 'youtube' | 'email'
 
 export const MARKETING_CHANNEL_LABELS: Record<MarketingChannelKey, string> = {
   all: 'All channels',
   web: 'Web',
   instagram: 'Instagram',
   facebook: 'Facebook',
+  x: 'X',
+  tiktok: 'TikTok',
+  youtube: 'YouTube',
   email: 'Email',
 }
 
@@ -1088,6 +1129,33 @@ export function getMarketingKpis(channel: MarketingChannelKey = 'all'): Kpi[] {
         { id: 'em-click', label: 'Click rate', value: 6.2, format: 'percent', deltaPct: 0.6, trend: 'up', hint: 'Avg across campaigns' },
         { id: 'em-leads', label: 'Leads', value: 215, format: 'number', deltaPct: 8.0, trend: 'up', hint: 'Attributed to email' },
       ]
+    case 'x':
+      return [
+        { id: 'x-followers', label: 'Followers', value: 8_900, format: 'number', deltaPct: 3.0, trend: 'up', hint: 'X (Twitter) audience' },
+        { id: 'x-new', label: 'New followers', value: 240, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'This period' },
+        { id: 'x-eng', label: 'Engagement rate', value: 1.8, format: 'percent', deltaPct: 0.1, trend: 'up', hint: 'Likes + reposts / impressions' },
+        { id: 'x-impr', label: 'Impressions', value: 64_000, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Total reach' },
+        { id: 'x-posts', label: 'Posts', value: 42, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Published this period' },
+        { id: 'x-leads', label: 'Leads', value: 28, format: 'number', deltaPct: 6.0, trend: 'up', hint: 'Attributed to X' },
+      ]
+    case 'tiktok':
+      return [
+        { id: 'tt-followers', label: 'Followers', value: 18_600, format: 'number', deltaPct: 11.0, trend: 'up', hint: 'TikTok audience' },
+        { id: 'tt-new', label: 'New followers', value: 1_420, format: 'number', deltaPct: 22.0, trend: 'up', hint: 'This period' },
+        { id: 'tt-eng', label: 'Engagement rate', value: 6.4, format: 'percent', deltaPct: 0.8, trend: 'up', hint: 'Likes + comments / views' },
+        { id: 'tt-views', label: 'Video views', value: 312_000, format: 'number', deltaPct: 18.0, trend: 'up', hint: 'Total views' },
+        { id: 'tt-posts', label: 'Posts', value: 28, format: 'number', deltaPct: 7.0, trend: 'up', hint: 'Published this period' },
+        { id: 'tt-leads', label: 'Leads', value: 64, format: 'number', deltaPct: 14.0, trend: 'up', hint: 'Attributed to TikTok' },
+      ]
+    case 'youtube':
+      return [
+        { id: 'yt-subs', label: 'Subscribers', value: 6_300, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'YouTube subscribers' },
+        { id: 'yt-new', label: 'New subscribers', value: 310, format: 'number', deltaPct: 8.0, trend: 'up', hint: 'This period' },
+        { id: 'yt-views', label: 'Video views', value: 142_000, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'Total views' },
+        { id: 'yt-watch', label: 'Watch time (hrs)', value: 4_800, format: 'number', deltaPct: 6.0, trend: 'up', hint: 'Total watch hours' },
+        { id: 'yt-videos', label: 'Videos', value: 12, format: 'number', deltaPct: 0, trend: 'flat', hint: 'Published this period' },
+        { id: 'yt-leads', label: 'Leads', value: 36, format: 'number', deltaPct: 7.0, trend: 'up', hint: 'Attributed to YouTube' },
+      ]
     default:
       return [
         { id: 'followers', label: 'Total followers', value: 48_200, format: 'number', deltaPct: 3.4, trend: 'up', hint: 'Across all social channels' },
@@ -1113,6 +1181,9 @@ export function getChannelTrend(channel: MarketingChannelKey = 'all'): {
     facebook: { metric: 'Followers', values: [13_200, 13_500, 13_700, 13_900, 14_050, 14_200] },
     web: { metric: 'Sessions', values: [16_800, 17_500, 18_200, 19_100, 20_200, 21_400] },
     email: { metric: 'Emails sent', values: [12_400, 13_800, 15_200, 16_100, 17_800, 18_900] },
+    x: { metric: 'Followers', values: [8_100, 8_300, 8_450, 8_600, 8_750, 8_900] },
+    tiktok: { metric: 'Followers', values: [13_200, 14_400, 15_600, 16_800, 17_700, 18_600] },
+    youtube: { metric: 'Subscribers', values: [5_400, 5_600, 5_800, 6_000, 6_150, 6_300] },
   }
   const s = series[channel]
   return { metric: s.metric, points: months.map((label, i) => ({ label, value: s.values[i] })) }
@@ -1123,8 +1194,39 @@ export function getMarketingChannels(): MarketingChannel[] {
     { channel: 'Instagram', followers: 24_800, leads: 96 },
     { channel: 'Facebook', followers: 14_200, leads: 64 },
     { channel: 'Google / SEO', followers: 0, leads: 78 },
+    { channel: 'TikTok', followers: 18_600, leads: 64 },
+    { channel: 'X', followers: 8_900, leads: 28 },
+    { channel: 'YouTube', followers: 6_300, leads: 36 },
     { channel: 'Email', followers: 9_200, leads: 38 },
     { channel: 'Referral', followers: 0, leads: 10 },
+  ]
+}
+
+/** Top and lower performing social posts (by engagement). */
+export function getSocialPosts(): { title: string; channel: string; engagement: number; reach: number }[] {
+  return [
+    { title: 'EBOO before/after reel', channel: 'TikTok', engagement: 9.8, reach: 142_000 },
+    { title: 'IV drip menu walkthrough', channel: 'Instagram', engagement: 7.2, reach: 38_400 },
+    { title: 'Patient testimonial: chronic fatigue', channel: 'YouTube', engagement: 6.1, reach: 21_000 },
+    { title: 'Dr. Drannikov Q&A clip', channel: 'Instagram', engagement: 5.4, reach: 26_700 },
+    { title: 'PRP explained in 30s', channel: 'TikTok', engagement: 4.9, reach: 54_000 },
+    { title: 'Clinic tour photo dump', channel: 'Facebook', engagement: 2.1, reach: 12_300 },
+    { title: 'Hours update post', channel: 'X', engagement: 1.2, reach: 6_400 },
+    { title: 'Holiday closure notice', channel: 'Facebook', engagement: 0.8, reach: 8_900 },
+  ]
+}
+
+/** Patients gone inactive (no visit recently) - staff call list. */
+export function getInactivePatients(): { name: string; lastVisit: string; modality: string; phone: string }[] {
+  return [
+    { name: 'Daniel Cooper', lastVisit: '2026-02-18', modality: 'IV Therapy', phone: '(305) 555-0210' },
+    { name: 'Rachel Kim', lastVisit: '2026-02-11', modality: 'EBOO', phone: '(305) 555-0221' },
+    { name: 'Victor Alvarez', lastVisit: '2026-01-29', modality: 'Neuromuscular Therapy', phone: '(305) 555-0234' },
+    { name: 'Megan Lewis', lastVisit: '2026-01-22', modality: 'BEMER Therapy', phone: '(305) 555-0245' },
+    { name: 'Brandon Hughes', lastVisit: '2026-01-15', modality: 'IV Therapy', phone: '(305) 555-0256' },
+    { name: 'Priya Nair', lastVisit: '2026-01-08', modality: 'Erchonia Laser Therapy', phone: '(305) 555-0267' },
+    { name: 'Carlos Mendoza', lastVisit: '2025-12-19', modality: 'PRP', phone: '(305) 555-0278' },
+    { name: 'Stephanie Young', lastVisit: '2025-12-12', modality: 'IV Therapy', phone: '(305) 555-0289' },
   ]
 }
 
@@ -1175,6 +1277,25 @@ export function getEmployeeTrend(id: string) {
     label,
     revenue: Math.round(base * (0.72 + i * 0.056) * (1 + (seeded(i, id.length + e.name.length) - 0.5) * 0.12)),
   }))
+}
+
+/** Generic 6-month trend for any metric, so any KPI block can be clicked. */
+export function getMetricTrend(seedKey: string, current: number) {
+  return TREND_MONTHS.map((label, i) => ({
+    label,
+    value: Math.round(current * (0.72 + i * 0.056) * (1 + (seeded(i, seedKey.length) - 0.5) * 0.08)),
+  }))
+}
+
+/** AI-generated dashboard insights (placeholder until wired to an LLM). */
+export function getAiInsights(): { tone: 'positive' | 'watch' | 'risk'; text: string }[] {
+  return [
+    { tone: 'positive', text: 'Revenue is up 8.4% MoM, driven mainly by EBOO (+12%) and IV Therapy volume.' },
+    { tone: 'risk', text: 'Medic misses (96) are 60% over target - estimated $307 cost, trending up 3 weeks straight.' },
+    { tone: 'watch', text: 'BlueShield A/R over 90 days is $46k across 96 claims - the largest aging exposure.' },
+    { tone: 'watch', text: 'Conversion from onboarding to 1st appointment slipped 4% vs last month.' },
+    { tone: 'positive', text: 'TikTok is the fastest-growing channel (+22% followers); EBOO reels drive the most leads.' },
+  ]
 }
 
 /** 6-month trend for any marketing KPI (clickable blocks). */

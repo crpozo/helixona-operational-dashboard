@@ -13,6 +13,7 @@ import {
 import { Download } from 'lucide-react'
 import Card from '../components/Card'
 import KpiCard from '../components/KpiCard'
+import TrendPanel from '../components/TrendPanel'
 import {
   getAgingByPayer,
   getBillingTrend,
@@ -23,14 +24,33 @@ import {
 import { CATEGORICAL, COLORS } from '../lib/colors'
 import { formatCompact, formatValue } from '../lib/format'
 import { downloadCsv } from '../lib/csv'
-import type { Kpi } from '../types'
+import type { Kpi, PayerClaims } from '../types'
 
 type OwedBasis = 'billed' | 'allowable'
 
-export default function Billing() {
+interface Props {
+  scale: number
+}
+
+// Which payer field backs each KPI, for the insurance-weight drill-down.
+const WEIGHT_FIELD: Record<string, keyof PayerClaims> = {
+  'billed-yesterday': 'billed',
+  'claims-yesterday': 'claims',
+  'days-to-submit': 'avgDaysToPay',
+  'days-to-pay': 'avgDaysToPay',
+  'denial-rate': 'denialRate',
+  'unlocked-claims': 'claims',
+  'appeals-sent': 'claims',
+  'claims-paid': 'paid',
+  'outstanding-ar': 'outstanding',
+}
+const ADDITIVE = new Set(['billed', 'claims', 'paid', 'outstanding'])
+
+export default function Billing({ scale }: Props) {
   const payers = getClaimsByPayer()
   const [payerFilter, setPayerFilter] = useState<string>('All')
   const [basis, setBasis] = useState<OwedBasis>('billed')
+  const [selKpi, setSelKpi] = useState<Kpi | null>(null)
 
   // Selected payer (null = All). Everything below reacts to this.
   const selected = payerFilter === 'All' ? null : payers.find((p) => p.payer === payerFilter) ?? null
@@ -46,7 +66,7 @@ export default function Billing() {
         { id: 'p-days', label: 'Avg days to pay', value: selected.avgDaysToPay, format: 'days', deltaPct: 0, trend: 'flat', lowerIsBetter: true, hint: `${selected.payer} cycle` },
         { id: 'p-denial', label: 'Denial rate', value: selected.denialRate, format: 'percent', deltaPct: 0, trend: 'flat', lowerIsBetter: true, hint: 'Claims denied' },
       ]
-    : getInsuranceKpis()
+    : getInsuranceKpis(scale)
 
   const trend = getBillingTrend().map((t) => ({
     label: t.label,
@@ -135,9 +155,9 @@ export default function Billing() {
             <p className="mt-1 text-[11px] text-emerald-700/80">Actually received — recognized revenue</p>
           </div>
           <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4">
-            <p className="text-sm font-medium text-rose-700">At risk · outstanding</p>
+            <p className="text-sm font-medium text-rose-700">Appealing Denial Clawback</p>
             <p className="mt-1 text-2xl font-bold tabular-nums text-rose-800">{formatValue(atRisk, 'currency')}</p>
-            <p className="mt-1 text-[11px] text-rose-700/80">Pending — can be denied or clawed back</p>
+            <p className="mt-1 text-[11px] text-rose-700/80">Denials being appealed / clawed back · 100% accurate</p>
           </div>
         </div>
         <p className="mt-2 text-xs text-slate-400">
@@ -146,12 +166,57 @@ export default function Billing() {
         </p>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs — click any block for insurance weight + trend over time */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
+          <KpiCard
+            key={k.id}
+            kpi={k}
+            active={selKpi?.id === k.id}
+            onClick={() => setSelKpi(selKpi?.id === k.id ? null : k)}
+          />
         ))}
       </div>
+      {selKpi && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card
+            title={`Insurance company weight · ${selKpi.label}`}
+            subtitle="How much each payer contributes"
+          >
+            <div className="space-y-2.5">
+              {(() => {
+                const field = WEIGHT_FIELD[selKpi.id] ?? 'billed'
+                const additive = ADDITIVE.has(field as string)
+                const total = payers.reduce((sum, p) => sum + (p[field] as number), 0)
+                const max = Math.max(...payers.map((p) => p[field] as number))
+                return [...payers]
+                  .sort((a, b) => (b[field] as number) - (a[field] as number))
+                  .map((p) => {
+                    const v = p[field] as number
+                    const pct = additive ? Math.round((v / total) * 100) : Math.round((v / max) * 100)
+                    const display =
+                      field === 'avgDaysToPay' ? `${v}d` : field === 'denialRate' ? `${v}%` :
+                      field === 'claims' ? v.toLocaleString() : formatValue(v, 'currency')
+                    return (
+                      <div key={p.payer}>
+                        <div className="mb-1 flex items-center justify-between text-sm">
+                          <span className="font-medium text-slate-600">{p.payer}</span>
+                          <span className="tabular-nums text-slate-500">
+                            {display}{additive && <span className="ml-1.5 text-xs text-slate-400">({pct}%)</span>}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                          <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })
+              })()}
+            </div>
+          </Card>
+          <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Billed vs collected MoM */}

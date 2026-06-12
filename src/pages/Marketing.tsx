@@ -5,6 +5,11 @@ import {
   Instagram,
   Layers,
   Mail,
+  Music2,
+  TrendingDown,
+  TrendingUp,
+  Twitter,
+  Youtube,
 } from 'lucide-react'
 import {
   Area,
@@ -26,26 +31,43 @@ import {
   getMarketingChannels,
   getMarketingKpis,
   getMarketingMetricTrend,
+  getSocialPosts,
   MARKETING_CHANNEL_LABELS,
   type MarketingChannelKey,
 } from '../data/mockData'
 import { CATEGORICAL, COLORS } from '../lib/colors'
 import { formatCompact } from '../lib/format'
 
-const CHANNELS: MarketingChannelKey[] = ['all', 'web', 'instagram', 'facebook', 'email']
+const CHANNELS: MarketingChannelKey[] = ['all', 'web', 'instagram', 'facebook', 'tiktok', 'youtube', 'x', 'email']
 
 const CHANNEL_ICONS: Record<MarketingChannelKey, typeof Layers> = {
   all: Layers,
   web: Globe,
   instagram: Instagram,
   facebook: Facebook,
+  tiktok: Music2,
+  youtube: Youtube,
+  x: Twitter,
   email: Mail,
 }
 
-export default function Marketing() {
+interface Props {
+  scale: number
+}
+
+// KPI ids that are running totals or rates — they don't scale with the period.
+const NO_SCALE = new Set([
+  'followers', 'ig-followers', 'fb-followers', 'x-followers', 'tt-followers', 'yt-subs',
+  'g-reviews', 'open-rate', 'em-open', 'em-click', 'ig-eng', 'fb-eng', 'x-eng', 'tt-eng',
+  'web-bounce', 'web-dur',
+])
+
+export default function Marketing({ scale }: Props) {
   const [channel, setChannelRaw] = useState<MarketingChannelKey>('all')
   const [selectedKpi, setSelectedKpi] = useState<string | null>(null)
-  const kpis = getMarketingKpis(channel)
+  const kpis = getMarketingKpis(channel).map((k) =>
+    NO_SCALE.has(k.id) ? k : { ...k, value: Math.round(k.value * scale) },
+  )
   const channels = getMarketingChannels()
   const campaigns = getEmailCampaigns()
   const isAll = channel === 'all'
@@ -142,6 +164,31 @@ export default function Marketing() {
           </Card>
         )}
       </div>
+
+      {/* Social posts — highest to lowest performing */}
+      {channel !== 'email' && channel !== 'web' && (
+        <Card title="Post performance" subtitle="Social posts ranked by engagement — highest to lowest">
+          <div className="space-y-1.5">
+            {getSocialPosts()
+              .filter((p) => isAll || MARKETING_CHANNEL_LABELS[channel] === p.channel)
+              .map((p, i, arr) => {
+                const top = i < Math.ceil(arr.length / 2)
+                return (
+                  <div key={p.title} className="flex items-center gap-3 rounded-xl border border-slate-100 px-3 py-2">
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${top ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                      {top ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-ink-900">{p.title}</p>
+                      <p className="text-xs text-slate-400">{p.channel} · {p.reach.toLocaleString()} reach</p>
+                    </div>
+                    <span className="shrink-0 text-sm font-bold tabular-nums text-ink-900">{p.engagement}%</span>
+                  </div>
+                )
+              })}
+          </div>
+        </Card>
+      )}
 
       {/* Email campaigns — focus when Email channel is selected */}
       {(isAll || channel === 'email') && (

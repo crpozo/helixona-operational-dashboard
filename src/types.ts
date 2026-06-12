@@ -52,6 +52,7 @@ export type RoleId =
   | 'ma'
   | 'medic'
   | 'nurse'
+  | 'technician'
   | 'billing'
   | 'ops'
   | 'admin'
