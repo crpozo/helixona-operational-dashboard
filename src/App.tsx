@@ -3,6 +3,7 @@ import Sidebar, { type PageId } from './components/Sidebar'
 import Header from './components/Header'
 import Today from './pages/Today'
 import Overview from './pages/Overview'
+import AiInsights from './pages/AiInsights'
 import Revenue from './pages/Revenue'
 import Billing from './pages/Billing'
 import Patients from './pages/Patients'
@@ -21,6 +22,7 @@ const PAGE_META: Record<
 > = {
   today: { title: 'Today', subtitle: 'Live daily snapshot of the operation', period: false, payment: false },
   overview: { title: 'Executive overview', subtitle: 'The whole operation at a glance', period: true, payment: true },
+  insights: { title: 'AI Insights', subtitle: 'AI summary and insights across every dashboard', period: false, payment: false },
   revenue: { title: 'Revenue', subtitle: 'Estimated vs collected, mix, and ticket by modality', period: true, payment: true },
   billing: { title: 'Insurance & Billing', subtitle: 'Claims, denials, and what payers owe', period: true, payment: false },
   patients: { title: 'Patients', subtitle: 'Funnel, new-patient pipeline, and modalities', period: true, payment: true },
@@ -63,6 +65,7 @@ export default function App() {
         <main className="flex-1 overflow-y-auto px-6 py-6">
           {page === 'today' && <Today />}
           {page === 'overview' && <Overview scale={scale} payment={payment} goals={goals} />}
+          {page === 'insights' && <AiInsights onNavigate={setPage} />}
           {page === 'revenue' && <Revenue scale={scale} payment={payment} />}
           {page === 'billing' && <Billing scale={scale} />}
           {page === 'patients' && <Patients scale={scale} payment={payment} />}

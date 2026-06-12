@@ -1287,14 +1287,104 @@ export function getMetricTrend(seedKey: string, current: number) {
   }))
 }
 
-/** AI-generated dashboard insights (placeholder until wired to an LLM). */
-export function getAiInsights(): { tone: 'positive' | 'watch' | 'risk'; text: string }[] {
+// -----------------------------------------------------------------------------
+// AI INSIGHTS — placeholder until wired to an LLM over the live data
+// -----------------------------------------------------------------------------
+export type AiTone = 'positive' | 'watch' | 'risk'
+
+export function getAiExecutiveSummary(): string {
+  return (
+    'Helixona had a strong month: total revenue grew 8.4% MoM to $326.8k, led by EBOO (+12%) and steady IV Therapy volume. ' +
+    'Cash collection remains healthy (96%), but insurance is the drag — only 58% of billed insurance revenue has landed in the bank, ' +
+    'with $412.9k outstanding and BlueShield alone holding $127k at a 182-day payment cycle. Patient acquisition is solid ' +
+    '(96 new patients, +12.5%), though onboarding-to-first-appointment conversion slipped 4% and 8 patients have gone inactive. ' +
+    'On the floor, EBOO is capacity-constrained at 92% occupancy while medic misses run 60% over target. ' +
+    'Marketing momentum is shifting to TikTok (+22% followers), which now drives the most leads per post.'
+  )
+}
+
+export interface AiSection {
+  page: string
+  area: string
+  summary: string
+  insights: { tone: AiTone; text: string }[]
+}
+
+export function getAiSections(): AiSection[] {
   return [
-    { tone: 'positive', text: 'Revenue is up 8.4% MoM, driven mainly by EBOO (+12%) and IV Therapy volume.' },
-    { tone: 'risk', text: 'Medic misses (96) are 60% over target - estimated $307 cost, trending up 3 weeks straight.' },
-    { tone: 'watch', text: 'BlueShield A/R over 90 days is $46k across 96 claims - the largest aging exposure.' },
-    { tone: 'watch', text: 'Conversion from onboarding to 1st appointment slipped 4% vs last month.' },
-    { tone: 'positive', text: 'TikTok is the fastest-growing channel (+22% followers); EBOO reels drive the most leads.' },
+    {
+      page: 'revenue',
+      area: 'Revenue',
+      summary: 'Growth is healthy but collection lags billing.',
+      insights: [
+        { tone: 'positive', text: 'Revenue up 8.4% MoM to $326.8k; 6th consecutive month of growth.' },
+        { tone: 'watch', text: 'Collection rate is 79% — $68k of June billing is not yet in the bank.' },
+        { tone: 'positive', text: 'EBOO is the top earner ($121k) with the best revenue-per-patient ratio.' },
+      ],
+    },
+    {
+      page: 'billing',
+      area: 'Insurance & Billing',
+      summary: 'A/R aging and BlueShield are the biggest risks.',
+      insights: [
+        { tone: 'risk', text: 'BlueShield: $46k aged over 90 days across 96 claims — largest exposure, 182-day pay cycle.' },
+        { tone: 'watch', text: 'Denial rate at 11% vs 8% goal; IVs and procedures drive most denials.' },
+        { tone: 'positive', text: 'Claims go out in 1.8 days on average — submission speed is not the bottleneck.' },
+        { tone: 'watch', text: '12 unlocked claims today are blocking submissions; chase unlocked charts/notes.' },
+      ],
+    },
+    {
+      page: 'patients',
+      area: 'Patients',
+      summary: 'Acquisition is strong; retention needs attention.',
+      insights: [
+        { tone: 'positive', text: 'New patients +12.5% (96); leads up across all channels.' },
+        { tone: 'watch', text: 'Onboarding → 1st appointment conversion slipped 4% vs last month.' },
+        { tone: 'risk', text: '8 patients have gone inactive (90+ days) — call list is ready in Patients.' },
+        { tone: 'watch', text: '44 leads denied/declined this period; cost and insurance fit are the top reasons.' },
+      ],
+    },
+    {
+      page: 'marketing',
+      area: 'Marketing',
+      summary: 'TikTok is the growth engine; Facebook underperforms.',
+      insights: [
+        { tone: 'positive', text: 'TikTok followers +22%; EBOO reels are the top-performing content (9.8% engagement).' },
+        { tone: 'positive', text: 'Google reviews at 4.8 stars (312 reviews), up 4% this period.' },
+        { tone: 'watch', text: 'Facebook engagement (2.1%) is a third of TikTok — consider repurposing reels.' },
+      ],
+    },
+    {
+      page: 'team',
+      area: 'Team & Roles',
+      summary: 'Strong utilization; misses and unlocked charts need follow-up.',
+      insights: [
+        { tone: 'risk', text: 'Medic misses (96) are 60% over target — estimated $307 cost, trending up 3 weeks.' },
+        { tone: 'watch', text: '24 unlocked charts across providers are delaying claim submissions.' },
+        { tone: 'positive', text: 'Front desk answers 86% of inbound calls; 300 missed calls and 180 voicemails to recover.' },
+      ],
+    },
+    {
+      page: 'treatments',
+      area: 'Treatments',
+      summary: 'EBOO is capacity-constrained; low utilizers drag occupancy.',
+      insights: [
+        { tone: 'watch', text: 'EBOO at 92% occupancy (7/8 spots daily) — demand exceeds capacity; consider expanding.' },
+        { tone: 'positive', text: 'IV Therapy holds 84% occupancy with the highest treatment volume (1,540).' },
+        { tone: 'watch', text: 'SCENAR, Biomodulator and MEAD run below 50% occupancy — bundle or promote.' },
+      ],
+    },
+  ]
+}
+
+export function getAiRecommendations(): { priority: 'high' | 'medium'; text: string }[] {
+  return [
+    { priority: 'high', text: 'Work the BlueShield 90+ day A/R bucket ($46k) and appeal denied IV claims first.' },
+    { priority: 'high', text: 'Lock charts daily: 24 unlocked charts + 12 unlocked claims are delaying revenue.' },
+    { priority: 'high', text: 'Call the 8 inactive patients this week — the list with phone numbers is in Patients.' },
+    { priority: 'medium', text: 'Add EBOO capacity (or extend hours): it is the top earner and is turning patients away.' },
+    { priority: 'medium', text: 'Shift ad budget toward TikTok and repurpose EBOO reels to Facebook to lift its 2.1% engagement.' },
+    { priority: 'medium', text: 'Coach medics on misses (96 vs 60 target); review the 4% drop in onboarding conversion with Marie.' },
   ]
 }
 
