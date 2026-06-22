@@ -29,6 +29,7 @@ const ROLE_FILTERS = [
   'All',
   'Provider',
   'Physician Associate',
+  'PCC',
   'New Patient Advisor',
   'Front Desk',
   'Medical Assistant',
@@ -38,7 +39,6 @@ const ROLE_FILTERS = [
   'Billing',
   'Operations Manager',
   'Admin',
-  'Executive',
 ] as const
 
 function utilTone(pct: number): string {

@@ -46,13 +46,16 @@ export interface FunnelStage {
 
 export type RoleId =
   | 'provider'
+  | 'bakman'
   | 'pa'
+  | 'pcc'
   | 'newPatient'
   | 'frontDesk'
   | 'ma'
   | 'medic'
   | 'nurse'
   | 'technician'
+  | 'labs'
   | 'billing'
   | 'ops'
   | 'admin'
