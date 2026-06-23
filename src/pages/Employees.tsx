@@ -30,6 +30,7 @@ const ROLE_FILTERS = [
   'Provider',
   'Physician Associate',
   'PCC',
+  'Patient Guide',
   'New Patient Advisor',
   'Front Desk',
   'Medical Assistant',

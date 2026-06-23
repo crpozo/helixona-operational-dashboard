@@ -49,6 +49,7 @@ export type RoleId =
   | 'bakman'
   | 'pa'
   | 'pcc'
+  | 'patientGuide'
   | 'newPatient'
   | 'frontDesk'
   | 'ma'

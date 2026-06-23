@@ -19,7 +19,9 @@ import {
   getBillingTrend,
   getClaimsByPayer,
   getDenials,
+  getDenialsByCpt,
   getInsuranceKpis,
+  getWriteOffDetail,
 } from '../data/mockData'
 import { CATEGORICAL, COLORS } from '../lib/colors'
 import { formatCompact, formatValue } from '../lib/format'
@@ -34,8 +36,8 @@ interface Props {
 
 // Which payer field backs each KPI, for the insurance-weight drill-down.
 const WEIGHT_FIELD: Record<string, keyof PayerClaims> = {
-  'billed-yesterday': 'billed',
-  'claims-yesterday': 'claims',
+  'billed': 'billed',
+  'claims-sent': 'claims',
   'days-to-submit': 'avgDaysToPay',
   'days-to-pay': 'avgDaysToPay',
   'denial-rate': 'denialRate',
@@ -177,7 +179,66 @@ export default function Billing({ scale }: Props) {
           />
         ))}
       </div>
-      {selKpi && (
+      {selKpi && (selKpi.id === 'denial-rate' || selKpi.id === 'p-denial') && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card title="Denials by CPT code" subtitle="Which codes are driving the denial rate">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                    <th className="pb-2 font-semibold">CPT</th>
+                    <th className="pb-2 font-semibold">Description</th>
+                    <th className="pb-2 text-right font-semibold">Denials</th>
+                    <th className="pb-2 text-right font-semibold">Denial %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getDenialsByCpt().map((c) => (
+                    <tr key={c.cpt} className="border-b border-slate-100 last:border-0">
+                      <td className="py-2 font-mono font-semibold text-ink-900">{c.cpt}</td>
+                      <td className="py-2 text-slate-600">{c.desc}</td>
+                      <td className="py-2 text-right tabular-nums text-slate-600">{c.denials}</td>
+                      <td className={`py-2 text-right tabular-nums ${c.rate >= 12 ? 'font-semibold text-rose-600' : 'text-slate-600'}`}>{c.rate}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[11px] text-slate-400">Highest-denial codes first — e.g. IV infusion (96365) drives most denials.</p>
+          </Card>
+          <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />
+        </div>
+      )}
+
+      {selKpi && selKpi.id === 'write-offs' && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card title="Write-offs by reason" subtitle="Where uncollectible balances are going">
+            <div className="space-y-2.5">
+              {(() => {
+                const detail = getWriteOffDetail()
+                const total = detail.reduce((sum, d) => sum + d.amount, 0)
+                return detail.map((d) => {
+                  const pct = Math.round((d.amount / total) * 100)
+                  return (
+                    <div key={d.reason}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="font-medium text-slate-600">{d.reason}</span>
+                        <span className="tabular-nums text-slate-500">{formatValue(d.amount, 'currency')}<span className="ml-1.5 text-xs text-slate-400">({pct}%)</span></span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full rounded-full bg-rose-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+          </Card>
+          <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />
+        </div>
+      )}
+
+      {selKpi && selKpi.id !== 'denial-rate' && selKpi.id !== 'p-denial' && selKpi.id !== 'write-offs' && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card
             title={`Insurance company weight · ${selKpi.label}`}

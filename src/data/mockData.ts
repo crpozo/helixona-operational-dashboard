@@ -277,9 +277,6 @@ const SERVICE_CATALOG: CatalogItem[] = [
   { name: 'SCENAR Therapy', patients: 74, treatments: 190, occupancyPct: 49, revenue: 12_600, capacity: 6, booked: 3 },
   { name: 'Biomodulator Therapy', patients: 68, treatments: 160, occupancyPct: 47, revenue: 11_200, capacity: 6, booked: 3 },
   { name: 'Chiro', patients: 184, treatments: 520, occupancyPct: 72, revenue: 28_400, capacity: 14, booked: 10 },
-  // Exams (FPE = combined RightEye + ANS + InBody)
-  { name: 'FPE', patients: 268, treatments: 268, occupancyPct: 76, revenue: 33_600, capacity: 14, booked: 11 },
-  { name: 'Medicare FPE', patients: 132, treatments: 132, occupancyPct: 64, revenue: 14_800, capacity: 8, booked: 5 },
   { name: 'MEAD Analysis', patients: 96, treatments: 96, occupancyPct: 44, revenue: 6_200, capacity: 6, booked: 3 },
 ]
 
@@ -317,12 +314,21 @@ export function getRoles(scale: number): Role[] {
       headcount: 1,
       metrics: [
         { label: 'Total appointments', value: r(540), format: 'number' },
-        { label: 'New patient appointments', value: r(96), format: 'number' },
-        { label: 'Established patient appts', value: r(444), format: 'number' },
+        { label: 'NP appts', value: r(96), format: 'number' },
+        { label: 'NP follow up appts', value: r(88), format: 'number' },
+        { label: 'Follow up appts', value: r(356), format: 'number' },
+        { label: 'Established New Patient', value: r(72), format: 'number' },
+        { label: 'Pellets - Female', value: r(44), format: 'number' },
+        { label: 'Pellets - Male', value: r(31), format: 'number' },
         { label: 'Hormone replacement therapy', value: r(58), format: 'number' },
-        { label: 'Acupuncture appointments', value: r(84), format: 'number' },
-        { label: 'Trigger point injections', value: r(62), format: 'number' },
-        { label: 'PRP procedures', value: r(34), format: 'number' },
+        { label: 'PRP', value: r(34), format: 'number' },
+        { label: 'Prolozone', value: r(48), format: 'number' },
+        { label: 'TPI', value: r(62), format: 'number' },
+        { label: 'Acupuncture', value: r(84), format: 'number' },
+        { label: 'Microcurrent', value: r(52), format: 'number' },
+        { label: 'Telemed', value: r(76), format: 'number' },
+        { label: 'Transfer of Care appts (TOCPT)', value: r(18), format: 'number' },
+        { label: 'Locked charts', value: r(512), format: 'number' },
         { label: 'Unlocked charts', value: r(14), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [{ name: 'Dr. Drannikov', metric: r(540), format: 'number' }],
@@ -338,6 +344,7 @@ export function getRoles(scale: number): Role[] {
         { label: 'FPE appts (excl. Medicare)', value: r(72), format: 'number' },
         { label: 'Medicare FPE appts', value: r(38), format: 'number' },
         { label: 'Calls to patients', value: r(140), format: 'number' },
+        { label: 'POC reviews', value: r(96), format: 'number' },
         { label: 'Unlocked charts', value: r(11), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [{ name: 'Dr. Bakman', metric: r(110), format: 'number' }],
@@ -389,6 +396,19 @@ export function getRoles(scale: number): Role[] {
       leaderboard: [{ name: 'Marie', metric: r(132), format: 'number' }],
     },
     {
+      id: 'patientGuide',
+      name: 'Patient Guide',
+      summary: 'Patient outreach calls and case management.',
+      source: '8x8 + ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'Outbound calls', value: r(680), format: 'number' },
+        { label: 'Inbound calls', value: r(540), format: 'number' },
+        { label: 'Patient cases', value: r(212), format: 'number' },
+      ],
+      leaderboard: [{ name: 'Patient Guide', metric: r(680), format: 'number' }],
+    },
+    {
       id: 'frontDesk',
       name: 'Front Desk',
       summary: 'Cash sales, copays/deductibles, and call handling.',
@@ -435,8 +455,8 @@ export function getRoles(scale: number): Role[] {
       source: 'ECW',
       headcount: 3,
       metrics: [
-        { label: 'Starts', value: r(1_620), format: 'number' },
-        { label: 'Misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
+        { label: 'IV starts', value: r(1_620), format: 'number' },
+        { label: 'IV misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
         { label: 'Cost of misses', value: r(74) * 3.2, format: 'currency', lowerIsBetter: true },
         { label: 'IVs administered', value: r(1_540), format: 'number' },
         { label: 'IVs booked', value: r(1_720), format: 'number' },
@@ -451,17 +471,16 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'nurse',
       name: 'Nurses · Nick',
-      summary: 'EBOOs, IV starts & misses, upsells, port access, and supplies.',
+      summary: 'EBOOs, ratio, upsells, port access/deaccess, and supplies.',
       source: 'ECW',
       headcount: 1,
       metrics: [
         { label: 'EBOOs performed', value: r(188), format: 'number' },
         { label: 'EBOO booked', value: r(212), format: 'number' },
-        { label: 'IV starts', value: r(620), format: 'number' },
-        { label: 'IV misses', value: r(28), format: 'number', lowerIsBetter: true },
+        { label: 'Ratio', value: 3, format: 'number' },
         { label: 'Upsells ($ vol.)', value: r(12_400), format: 'currency' },
         { label: 'Port access / deaccess', value: r(86), format: 'number' },
-        { label: 'Supplies / COGs', value: r(8_200), format: 'currency', lowerIsBetter: true },
+        { label: '# of supplies', value: r(640), format: 'number' },
       ],
       leaderboard: [{ name: 'Nick', metric: r(188), format: 'number' }],
     },
@@ -484,15 +503,17 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'labs',
       name: 'Lab Draws',
-      summary: 'Draws by lab (Quest, MDL, Genova) and processing by staff.',
+      summary: 'Draws by lab (Quest, MDL), kits, and processing time by staff.',
       source: 'ECW + Lab portals',
       headcount: 0,
       metrics: [
         { label: 'Quest draws', value: r(180), format: 'number' },
         { label: 'MDL draws', value: r(96), format: 'number' },
-        { label: 'Genova draws', value: r(74), format: 'number' },
+        { label: 'MDL kits', value: r(64), format: 'number' },
         { label: 'Processed by Kyle', value: r(210), format: 'number' },
         { label: 'Processed by Bea', value: r(140), format: 'number' },
+        { label: 'Total time spent by Kyle (hrs)', value: r(38), format: 'number' },
+        { label: 'Total time spent by Bea (hrs)', value: r(26), format: 'number' },
       ],
       leaderboard: [
         { name: 'Kyle', metric: r(210), format: 'number' },
@@ -508,7 +529,7 @@ export function getRoles(scale: number): Role[] {
       metrics: [
         { label: 'Insurance collections', value: r(98_400), format: 'currency', target: r(110_000) },
         { label: 'VOBs completed', value: r(286), format: 'number' },
-        { label: 'Claims not sent (today)', value: 12, format: 'number', lowerIsBetter: true },
+        { label: 'Pending claims', value: r(12), format: 'number', lowerIsBetter: true },
         { label: 'Avg days to submit claim', value: 1.8, format: 'days', lowerIsBetter: true },
         { label: 'Claims denied', value: r(86), format: 'number', lowerIsBetter: true },
         { label: 'Denial rate', value: 11, format: 'percent', lowerIsBetter: true, target: 8 },
@@ -576,7 +597,7 @@ const PATIENTS: PatientRecord[] = [
   { id: 'p5', name: 'Emma Rodriguez', stageIndex: 1, status: 'on-track', modality: 'BEMER Therapy', coordinator: 'Marie', source: 'Instagram', createdAt: '2026-06-02', nextAppt: undefined, revenue: 0, phone: '(305) 555-0119', email: 'emma.r@example.com', stageDates: ['2026-06-02', '2026-06-03', undefined, undefined, undefined, undefined] },
   { id: 'p6', name: 'Liam Foster', stageIndex: 0, status: 'on-track', modality: 'IV Therapy', coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-06-04', nextAppt: undefined, revenue: 0, phone: '(305) 555-0160', email: 'liam.f@example.com', stageDates: ['2026-06-04', undefined, undefined, undefined, undefined, undefined] },
   { id: 'p7', name: 'Ava Mitchell', stageIndex: 2, status: 'waitlist', modality: 'EBOO', coordinator: 'Marie', source: 'EBOO landing page', createdAt: '2026-05-25', nextAppt: undefined, revenue: 0, phone: '(305) 555-0101', email: 'ava.m@example.com', stageDates: ['2026-05-25', '2026-05-27', '2026-05-31', undefined, undefined, undefined] },
-  { id: 'p8', name: 'Noah Pearson', stageIndex: 1, status: 'declined', modality: 'FPE', coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-22', nextAppt: undefined, revenue: 0, phone: '(305) 555-0134', email: 'noah.p@example.com', stageDates: ['2026-05-22', '2026-05-24', undefined, undefined, undefined, undefined], declineReason: 'Cost — chose not to proceed after pricing' },
+  { id: 'p8', name: 'Noah Pearson', stageIndex: 1, status: 'declined', modality: 'Chiro', coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-22', nextAppt: undefined, revenue: 0, phone: '(305) 555-0134', email: 'noah.p@example.com', stageDates: ['2026-05-22', '2026-05-24', undefined, undefined, undefined, undefined], declineReason: 'Cost — chose not to proceed after pricing' },
   { id: 'p9', name: 'Isabella Reed', stageIndex: 5, status: 'active', modality: 'IV Therapy', coordinator: 'Marie', source: 'Referral', createdAt: '2026-01-15', nextAppt: '2026-06-07', revenue: 5_120, phone: '(305) 555-0155', email: 'bella.r@example.com', stageDates: ['2026-01-15', '2026-01-16', '2026-01-19', '2026-01-23', '2026-01-30', '2026-02-14'] },
   { id: 'p10', name: 'Ethan Brooks', stageIndex: 4, status: 'on-track', modality: 'Erchonia Laser Therapy', coordinator: 'Marie', source: 'Instagram', createdAt: '2026-05-18', nextAppt: '2026-06-10', revenue: 980, phone: '(305) 555-0166', email: 'ethan.b@example.com', stageDates: ['2026-05-18', '2026-05-19', '2026-05-23', '2026-05-27', '2026-06-01', undefined] },
   { id: 'p11', name: 'Mia Coleman', stageIndex: 3, status: 'on-track', modality: 'BEMER Therapy', coordinator: 'Marie', source: 'Referral', createdAt: '2026-05-30', nextAppt: '2026-06-08', revenue: 260, phone: '(305) 555-0111', email: 'mia.c@example.com', stageDates: ['2026-05-30', '2026-05-31', '2026-06-02', '2026-06-04', undefined, undefined] },
@@ -681,30 +702,30 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Extension calls', value: 300, format: 'number' },
   ] },
   { id: 'e10', name: 'Bea', role: 'Medic', roleId: 'medic', utilizationPct: 93, revenue: 30_400, metrics: [
-    { label: 'Starts', value: 1_620, format: 'number' },
-    { label: 'Misses', value: 74, format: 'number', lowerIsBetter: true },
+    { label: 'IV starts', value: 1_620, format: 'number' },
+    { label: 'IV misses', value: 74, format: 'number', lowerIsBetter: true },
     { label: 'Cost of misses', value: 237, format: 'currency', lowerIsBetter: true },
     { label: 'IVs administered', value: 1_540, format: 'number' },
     { label: 'IVs booked', value: 1_720, format: 'number' },
     { label: 'Unlocked notes', value: 21, format: 'number', lowerIsBetter: true },
   ] },
   { id: 'e11', name: 'Juan', role: 'Medic', roleId: 'medic', utilizationPct: 87, revenue: 24_100, metrics: [
-    { label: 'Starts', value: 1_280, format: 'number' },
-    { label: 'Misses', value: 62, format: 'number', lowerIsBetter: true },
+    { label: 'IV starts', value: 1_280, format: 'number' },
+    { label: 'IV misses', value: 62, format: 'number', lowerIsBetter: true },
     { label: 'IVs administered', value: 1_180, format: 'number' },
     { label: 'Unlocked notes', value: 18, format: 'number', lowerIsBetter: true },
   ] },
   { id: 'e12', name: 'Nate', role: 'Medic', roleId: 'medic', utilizationPct: 82, revenue: 20_900, metrics: [
-    { label: 'Starts', value: 1_090, format: 'number' },
-    { label: 'Misses', value: 58, format: 'number', lowerIsBetter: true },
+    { label: 'IV starts', value: 1_090, format: 'number' },
+    { label: 'IV misses', value: 58, format: 'number', lowerIsBetter: true },
     { label: 'IVs administered', value: 980, format: 'number' },
     { label: 'Unlocked notes', value: 24, format: 'number', lowerIsBetter: true },
   ] },
   { id: 'e13', name: 'Nick', role: 'Nurse', roleId: 'nurse', utilizationPct: 95, revenue: 41_600, metrics: [
     { label: 'EBOOs performed', value: 188, format: 'number' },
-    { label: 'IV starts', value: 620, format: 'number' },
-    { label: 'IV misses', value: 28, format: 'number', lowerIsBetter: true },
+    { label: 'Upsells ($ vol.)', value: 12_400, format: 'currency' },
     { label: 'Port access / deaccess', value: 86, format: 'number' },
+    { label: '# of supplies', value: 640, format: 'number' },
   ] },
   { id: 'e14', name: 'Kyle', role: 'Technician', roleId: 'technician', utilizationPct: 89, revenue: 18_400, metrics: [
     { label: 'Laser appointments', value: 186, format: 'number' },
@@ -1018,12 +1039,12 @@ export function getAlerts(goals: Goal[] = getGoals()): Alert[] {
 export function getInsuranceKpis(scale: number = 1): Kpi[] {
   const r = (n: number) => Math.round(n * scale)
   return [
-    { id: 'billed-yesterday', label: 'Billed yesterday', value: 84_200, format: 'currency', deltaPct: 6.0, trend: 'up', hint: 'Claims submitted yesterday' },
-    { id: 'claims-yesterday', label: 'Claims sent yesterday', value: 47, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Number of claims submitted' },
+    { id: 'billed', label: 'Billed', value: r(291_800), format: 'currency', deltaPct: 6.0, trend: 'up', hint: 'Claims billed in the period' },
+    { id: 'claims-sent', label: 'Claims sent', value: r(782), format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Claims submitted in the period' },
     { id: 'days-to-submit', label: 'Avg days to submit', value: 1.8, format: 'days', deltaPct: -8.0, trend: 'down', lowerIsBetter: true, hint: 'Encounter → claim sent' },
     { id: 'days-to-pay', label: 'Avg days to pay', value: 38, format: 'days', deltaPct: -3.0, trend: 'down', lowerIsBetter: true, hint: 'Weighted across payers' },
     { id: 'denial-rate', label: 'Total denial rate', value: 11, format: 'percent', deltaPct: 1.5, trend: 'up', lowerIsBetter: true, hint: '86 claims denied (11%)' },
-    { id: 'unlocked-claims', label: 'Unlocked claims (today)', value: 12, format: 'number', deltaPct: -14.0, trend: 'down', lowerIsBetter: true, hint: 'Claims not sent - waiting on unlocked charts/notes' },
+    { id: 'unlocked-claims', label: 'Unlocked claims', value: r(12), format: 'number', deltaPct: -14.0, trend: 'down', lowerIsBetter: true, hint: 'Open money until the provider closes the claim' },
     { id: 'appeals-sent', label: 'Appeals sent in period', value: r(41), format: 'number', deltaPct: 6.0, trend: 'up', hint: 'Total appeal submissions' },
     { id: 'claims-appealed', label: 'Unique claims appealed', value: r(34), format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Distinct claims under appeal' },
     { id: 'vobs', label: 'VOBs completed', value: r(286), format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Verifications of benefits' },
@@ -1052,6 +1073,29 @@ export function getDenials(): DenialCategory[] {
     { category: 'Diagnostics', denials: 27 },
     { category: 'Procedures', denials: 33 },
     { category: 'Labs', denials: 15 },
+  ]
+}
+
+/** Denied CPT codes — which codes are driving the denial rate (click denial rate). */
+export function getDenialsByCpt(): { cpt: string; desc: string; denials: number; rate: number }[] {
+  return [
+    { cpt: '96365', desc: 'IV infusion therapy, initial', denials: 41, rate: 18 },
+    { cpt: '20552', desc: 'Trigger point injection', denials: 14, rate: 12 },
+    { cpt: '99204', desc: 'New patient office visit', denials: 12, rate: 6 },
+    { cpt: '36415', desc: 'Venipuncture / blood draw', denials: 9, rate: 4 },
+    { cpt: '97110', desc: 'Therapeutic exercise', denials: 7, rate: 5 },
+    { cpt: '99214', desc: 'Established patient visit', denials: 3, rate: 2 },
+  ]
+}
+
+/** Write-off breakdown by reason (click write-offs). */
+export function getWriteOffDetail(): { reason: string; amount: number }[] {
+  return [
+    { reason: 'Contractual adjustment', amount: 6_400 },
+    { reason: 'Timely filing', amount: 3_100 },
+    { reason: 'Non-covered service', amount: 2_400 },
+    { reason: 'Patient bad debt', amount: 1_500 },
+    { reason: 'Small balance', amount: 800 },
   ]
 }
 
