@@ -6,9 +6,16 @@
 
 **Fecha de elaboración:** 14 de julio de 2026
 **Inicio propuesto:** lunes 20 de julio de 2026
-**Go-live:** **16 semanas** (≈ 6 de noviembre de 2026), con **maduración de datos hasta la
-semana 20** (funnel, seguros y tallies manuales terminan de estabilizarse post-go-live).
-Con 1 solo dev en lugar de 2, estirar a **20–22 semanas**.
+
+| Escenario | Go-live | Condiciones |
+|---|---|---|
+| Optimista | 16 semanas (≈ 6 nov) | 2 devs, cero ausencias, decisiones del founder en 48 h, cero break-fix |
+| **Realista (el plan)** | **18 semanas (≈ 20 nov)** | 2 devs, con presupuesto de ausencias, review/QA y roturas de pipes en vivo |
+| Conservador | 20–22 semanas (≈ dic) | Si se atascan licencias/accesos o falla la adopción del staff |
+| Con 1 solo dev | 24–26 semanas | Los carriles paralelos se vuelven secuenciales; no hay versión de 16–18 semanas con 1 dev |
+
+Tras el go-live hay **maduración hasta la semana ~22**: funnel, seguros y tallies manuales
+terminan de estabilizarse con historia suficiente (las etiquetas "provisional" se caen solas).
 
 ---
 
@@ -16,22 +23,39 @@ Con 1 solo dev en lugar de 2, estirar a **20–22 semanas**.
 
 | Hito | Cuándo | Qué incluye |
 |---|---|---|
-| **M1 · Primer dato real** | Semana 4–5 (mediados de agosto) | Today + Overview con datos de ECW, por *cualquier* ruta de ingesta (la descarga manual de CSVs cuenta) |
-| **M2 · Llamadas y marketing** | Semana 7–8 (inicios de septiembre) | 8x8 por API + Meta/GA4/Mailchimp en vivo |
-| **M3 · Billing v1** | Semana 12 (inicios de octubre) | Revenue, pagos, A/R y denials aproximados con reportes estándar. El detalle claims-level (allowable, códigos de denial) depende de eBO y llega **post-go-live** |
-| **M4 · Go-live completo** | Semana 16 (inicios de noviembre) | Todas las vistas con datos reales; funnel/tallies y métricas de seguros <45 días marcadas **"provisional"** |
+| **M1 · Primer dato real** | Semana 5 (≈ 21 ago) | Today + Overview con datos de ECW en el dashboard privado, por *cualquier* ruta de ingesta (la descarga manual de CSVs cuenta) |
+| **M2 · Llamadas y marketing** | Semana 8–9 (mediados de sep) | 8x8 por API + Meta/GA4/Mailchimp en vivo |
+| **M3 · Billing v1** | Semana 13 (mediados de oct) | Revenue, pagos, A/R y denials aproximados con reportes estándar. El detalle claims-level (allowable, códigos de denial) depende de eBO y llega **post-go-live** |
+| **M4 · Go-live completo** | Semana 18 (≈ 20 nov) | Todas las vistas con datos reales; funnel/tallies y métricas de seguros <45 días marcadas **"provisional"** |
 
-El cronograma ya incluye buffers: **×1.5** sobre estimados de desarrollo propio y
-**×2–3 en calendario** para todo lo que dependa de terceros (soporte de ECW, licencias,
-aprobaciones). No es pesimismo: el soporte de eClinicalWorks tiene CSAT ~3.3/5 y hay
-anécdotas documentadas de tickets abiertos por meses. **Regla aplicada sin excepciones:
-nada que dependa de ECW está en la ruta crítica de un hito.**
+El cronograma aplica buffers **sin excepciones**: ×1.5 sobre estimados de desarrollo propio
+y ×2–3 en calendario para todo lo que dependa de terceros (soporte de ECW, licencias,
+aprobaciones) — por eso **nada gated por ECW está en la ruta crítica de un hito** (ni eBO,
+ni el EHI export, ni el scheduling de reportes). No es pesimismo: el soporte de
+eClinicalWorks tiene CSAT ~3.3/5 y hay anécdotas documentadas de tickets abiertos por meses.
 
-### Supuestos
+**La ruta crítica real no es el bot.** El bot RPA es trabajo controlado por nosotros y con
+buffer. Las dos cadenas que de verdad mueven el go-live son: (a) la cadena de compras eBO
+(por eso quedó FUERA del alcance del go-live), y (b) **decisión de captura de leads → build
+→ adopción del staff → validación** — por eso la decisión es en la semana 2, el formulario
+vive en la semana 3–4, y la adopción termina ~semana 10 dejando holgura real antes de validar.
 
-- **2 desarrolladores.** Asignación para que el paralelismo sea real y no dibujado:
-  **Dev A** es dueño del carril ECW (F2 → F3 → F6); **Dev B** de infraestructura, APIs y
-  la integración del dashboard (F1 → F4 → F5 → F8). F7 se comparte con la office manager.
+### Supuestos y aritmética de capacidad
+
+- **2 desarrolladores con carriles nombrados** (la suma de fases es ~38 semanas-fase en 18
+  semanas de calendario ≈ 2+ FTE: solo cierra si nadie está en dos carriles a la vez):
+  - **Dev A — carril ECW:** F2 ingesta (S3–6) → F3 bot RPA **dedicado** (S5–10) → F6
+    billing dev-heavy (S10–13).
+  - **Dev B — carril plataforma:** F1 infra+hosting (S2–4) → F8 esqueleto de servido +
+    Today/Overview (S4–5) → F4 8x8 (S5–7) → F5 marketing (S7–8, **serializado tras F4**,
+    es el mismo tipo de trabajo) → F8 resto de vistas (S8–14).
+  - **F7 captura manual:** office manager como dueña operativa + horas sueltas de dev.
+- **Capacidad oculta, presupuestada y no negada:** ausencias/enfermedad en 4 meses que
+  cruzan agosto y Labor Day (~1–1.5 semanas por dev es la norma estadística), 10–15% de
+  overhead de code review/QA/deploys, y **break-fix de pipes ya vivos mientras se sigue
+  construyendo** (R4 es "alta, recurrente": cada rotura de ECW cuesta 1–2 días que compiten
+  con el build). Eso son ~2–3 semanas que el escenario de 16 se come en silencio — y es
+  exactamente la diferencia entre 16 y 18.
 - ECW en **cloud** (peor caso). Si resulta self-hosted/on-prem hay acceso directo a MySQL
   y las fases 2, 3 y 6 se comprimen ~4 semanas (riesgo positivo R1).
 - **Horas del lado clínica, comprometidas de antemano** (no solo el founder):
@@ -68,19 +92,23 @@ Del inventario métrica por métrica del dashboard:
 ## 3. Cronograma por fases
 
 ```
-Semana:              1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16
+Semana:              1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18
 F0 Descubrimiento    ██ ██
-F1 Infra + hosting      ██ ██ ██
-F2 ECW v1 ingesta          ██ ██ ██ ██
-F3 Bot RPA ECW                   ██ ██ ██ ██ ██
-F4 8x8                           ██ ██ ██
-F5 Marketing                        ██ ██ ██
-F6 Billing v1                             ██ ██ ██ ██ ██ ██
-F7 Captura manual          ██ ██ ██ ██ ██ ██ ██ ██
-F8 Integración dash           ██ ██ ██ ██ ██ ██ ██ ██ ██ ██
-F9 Validación                                        ██ ██ ██ ██
-                              ▲M1          ▲M2          ▲M3       ▲M4
+F1 Infra + hosting      ██ ██ ██                                   Dev B
+F2 ECW v1 ingesta          ██ ██ ██ ██                             Dev A
+F3 Bot RPA ECW                   ██ ██ ██ ██ ██ ██                 Dev A
+F4 8x8                           ██ ██ ██                          Dev B
+F5 Marketing                           ██ ██                       Dev B
+F6 Billing v1                             ██ ██ ██ ██ ██ ██        biller→Dev A
+F7 Captura manual          ██ ██ ██ ██ ██ ██ ██ ██                 office mgr
+F8 Integración dash           ██ ██ ██ ██ ██ ██ ██ ██ ██ ██ ██     Dev B
+F9 Validación                                            ██ ██ ██ ██
+Buffer nombrado                                                       ██
+                                 ▲M1          ▲M2             ▲M3       ▲M4
 ```
+
+El buffer final (S18) tiene nombre: ausencias, break-fix acumulado y decisiones tardías.
+Si no se consume, el go-live adelanta a la semana 16–17.
 
 ### Fase 0 — Descubrimiento, accesos y cumplimiento (semanas 1–2 · 20–31 jul)
 
@@ -145,7 +173,7 @@ estructurado propio) · definiciones de métricas · cadencia Today · defaults 
 
 **Entregable:** documento de decisiones + matriz métrica→fuente→método confirmada.
 
-### Fase 1 — Infraestructura y hosting privado (semanas 2–4 · 27 jul–14 ago)
+### Fase 1 — Infraestructura y hosting privado (semanas 2–4 · 27 jul–14 ago · Dev B)
 
 - Host único (VM cloud con **BAA** firmado) con Docker Compose: Postgres (landing `jsonb`
   + tablas mart), scheduler (cron/pg-boss — Temporal/Airflow son overkill), worker
@@ -165,7 +193,7 @@ estructurado propio) · definiciones de métricas · cadencia Today · defaults 
   A/R outstanding, waitlist, active-patients-90d. Cada fase registra sus métricas stock la
   semana en que su ingesta arranca; los deltas de F8 solo leen esta historia acumulada.
 - **Tablas de configuración v0, sembradas desde las respuestas de F0** (semanas 2–3, son
-  CSVs estáticos, no ingeniería): mapeo de identidades **ECW user ↔ extensión 8x8 ↔
+  ~25 filas estáticas, no ingeniería): mapeo de identidades **ECW user ↔ extensión 8x8 ↔
   roster**, catálogo código-servicio → modalidad (14 servicios), capacidad por sala/unidad.
   Las superficies de edición llegan en F7; los datos existen desde ya. **Roster + mapeo v0
   son prerequisito de M1** (la tabla "team on shift" los necesita).
@@ -175,7 +203,7 @@ estructurado propio) · definiciones de métricas · cadencia Today · defaults 
 **Entregable:** dashboard servido en privado + pipeline esqueleto con un job monitorizado
 + snapshots corriendo + config v0 cargada.
 
-### Fase 2 — ECW v1: ingesta de reportes (semanas 3–6 · 3 ago–28 ago)
+### Fase 2 — ECW v1: ingesta de reportes (semanas 3–6 · 3–28 ago · Dev A)
 
 **La ruta oficial de M1 es la humilde:** front desk descarga 4–5 CSVs (agenda/citas,
 claims/AR, pagos, CPT, registry) a una carpeta compartida desde la semana 2 (~10 min/día).
@@ -194,15 +222,16 @@ humano sale del loop; si no, el bot de F3 los reemplaza.
 - Implementar la **cadencia Today decidida en F0** (si es intradía, el export liviano de
   agenda/check-in corre cada 30–60 min en horario de clínica).
 
-**🏁 HITO M1 (fin semana 4–inicio 5):** Today + Overview con datos reales de ECW en el
-dashboard privado. Etiqueta honesta de frescura ("datos a las HH:MM"). Gráficos con
-historia parcial lo dicen en pantalla ("histórico desde ago 2025 en construcción").
+**🏁 HITO M1 (semana 5):** Today + Overview con datos reales de ECW en el dashboard
+privado. Etiqueta honesta de frescura ("datos a las HH:MM"). Gráficos con historia parcial
+lo dicen en pantalla ("histórico desde ago 2025 en construcción").
 
-### Fase 3 — Bot RPA sobre ECW (semanas 5–9 · 17 ago–18 sep)
+### Fase 3 — Bot RPA sobre ECW (semanas 5–10 · 17 ago–25 sep · Dev A dedicado)
 
 Para reportes/pantallas no programables y para retirar al humano de la descarga diaria.
 Camino comercialmente probado (el propio blog de ECW promueve bots RPA) pero la pieza más
-frágil del proyecto:
+frágil del proyecto. **6 semanas con Dev A sin otras cargas** — la investigación dice 3–6
+semanas de dev ×1.5; comprimirlo solo sale bien en demos:
 
 - Playwright: login + TOTP (pyotp) en ráfagas cortas login→export→logout (timeouts de
   sesión cortos). **ECW es single-session:** si un humano entra con la cuenta del bot, se
@@ -212,11 +241,11 @@ frágil del proyecto:
 - UI legacy JSP con iframes: selectores por label/ARIA, nunca IDs generados. Preferir
   **botones de descarga CSV nativos** sobre leer tablas en pantalla.
 - Artefactos de browser (screenshots, traces, HAR) **desactivados o depurados**: capturan PHI.
-- 2 de las 5 semanas son endurecimiento y contratiempos esperados (MFA edge cases,
+- 2 de las 6 semanas son endurecimiento y contratiempos esperados (MFA edge cases,
   arqueología de iframes, formatos sorpresa). Verificar con quien tenga el contrato de ECW
   que no haya cláusula contra acceso automatizado.
 
-### Fase 4 — 8x8 (semanas 5–7 · 17 ago–4 sep, Dev B)
+### Fase 4 — 8x8 (semanas 5–7 · 17 ago–4 sep · Dev B)
 
 - API oficial **Analytics for 8x8 Work**: `GET /extsum` da exactamente lo que necesitan
   Team/Employees (Inbound_Answered, Inbound_Missed, Outbound_Total por extensión) en una
@@ -228,33 +257,38 @@ frágil del proyecto:
 - Backfill: hasta 2 años **o desde que Analytics fue habilitado por extensión**, lo que
   sea más corto.
 
-### Fase 5 — Marketing (semanas 6–8 · 24 ago–11 sep, Dev B)
+### Fase 5 — Marketing (semanas 7–8 · 31 ago–11 sep · Dev B, serializado tras F4)
 
 - Meta Graph API con **System User token** (no expira; los tokens de usuario mueren a los
   60 días o con cambios de password — alertar en error 190 y en frescura). El snapshot de
-  followers ya corre desde F1.
+  followers ya corre desde F1 — esta fase construye el conector completo.
 - GA4 Data API (service account) y Mailchimp Reports API: ~1 semana entre ambos.
 - **Tagging de eventos GA4 en el sitio web** (submits de booking/contacto como key events,
   UTMs consistentes): tarea propia — alimenta "conversions" y la atribución de leads de F7.
 - "Leads por canal" requiere UTMs fluyendo hacia la captura de leads (F7).
 
-### Fase 6 — Billing v1 y eBO (semanas 7–12 · 31 ago–9 oct, Dev A; gated por ECW)
+**🏁 HITO M2 (semana 8–9):** 8x8 + marketing en vivo en Team/Employees y Marketing.
 
+### Fase 6 — Billing v1 y eBO (semanas 8–13 · 7 sep–16 oct · biller primero, Dev A desde S10)
+
+- Semanas 8–9 son de mapeo con el biller (denial codes → categorías, cash vs insurance,
+  payer master) y configuración de reportes — carga dev baja mientras Dev A termina F3.
+  Dev-heavy desde la semana 10.
 - **Billing v1 = el default del plan:** reportes estándar + RPA. Revenue, pagos, mix
-  cash/insurance, A/R, y denials aproximados con mapeo manual de códigos (2 h del biller).
+  cash/insurance, A/R, y denials aproximados con mapeo manual de códigos.
   Si hay POS aparte para cash, aquí aterriza su integración o la planilla EOD.
 - **eBO es un upgrade, no una dependencia.** Matemática honesta: cotización (2–4 sem) +
   decisión + contrato + provisioning (4–10 sem) + curva Cognos = utilizable semanas 12–18
   en el caso mediano, o sea **post-go-live**. Si el founder firma antes de la semana 6,
   el detalle claims-level (allowable pre-remittance, denial codes reales) entra en las
-  semanas 16–20. **Decisión founder semana 6: firmar o matar eBO** — sin fecha de decisión
+  semanas 18–22. **Decisión founder semana 6: firmar o matar eBO** — sin fecha de decisión
   es como estas cosas derivan para siempre.
-- **🏁 HITO M3 (semana 12):** Revenue + Insurance & Billing con datos reales *estándar*.
+- **🏁 HITO M3 (semana 13):** Revenue + Insurance & Billing con datos reales *estándar*.
 
-### Fase 7 — Captura de leads y datos manuales (semanas 3–10 · 3 ago–25 sep, compartida con office manager)
+### Fase 7 — Captura de leads y datos manuales (semanas 3–10 · 3 ago–25 sep · office manager + dev compartido)
 
 Lo que ningún bot puede scrapear porque **no existe el sistema** — y por eso arranca
-temprano, no en la mitad del proyecto:
+temprano, no en la mitad del proyecto (es la mitad de la ruta crítica real):
 
 - **Semanas 3–4: formulario interino de leads en producción** (Google Form/Airtable/Tally
   → import nocturno a Postgres) con los campos del funnel: stage con timestamps (Lead →
@@ -264,8 +298,9 @@ temprano, no en la mitad del proyecto:
 - **Adopción: 4–6 semanas con criterio de salida, no con fecha.** Métrica semanal de
   cumplimiento — entradas registradas vs procedimientos reales de ECW (¡el denominador se
   puede calcular!) — revisada con el founder; salida = **≥90% dos semanas seguidas**.
-  Capturas atadas a rituales existentes: el conteo de lockbox ya pasa cada EOD (colgarle
-  el form); stars/misses en el momento en que la MA ya documenta el stick.
+  Con arranque en semana 4, la adopción cierra ~semana 10 y deja 3+ semanas de holgura
+  antes de la validación (F9). Capturas atadas a rituales existentes: el conteo de lockbox
+  ya pasa cada EOD (colgarle el form); stars/misses donde la MA ya documenta el stick.
 - Decisión que el founder debe comunicar **antes** del rollout: ¿la captura manual afecta
   evaluaciones de desempeño? Si el staff sospecha que sí, van a inflar los números.
 - Superficies de captura/edición: targets por rol/empleado y goals (con dueño), tallies
@@ -273,16 +308,19 @@ temprano, no en la mitad del proyecto:
   semanal (fecha, revisores, estado — 3 campos), y las superficies admin de las tablas
   config sembradas en F1.
 
-### Fase 8 — Integración continua del dashboard (semanas 4–13 · 10 ago–16 oct, Dev B)
+### Fase 8 — Integración continua del dashboard (semanas 4–14 · 10 ago–23 oct · Dev B)
 
 **No es una fase final: es un carril continuo, vista por vista, desde la semana 4** (así
 es como M1 y M2 son posibles). Orden: Today + Overview (S4–5) → Team/Employees con 8x8
-(S7–8) → Marketing (S8) → Revenue/Billing (S10–12) → Patients/Journey (S11–13).
+(S8–9) → Marketing (S9) → Revenue/Billing (S11–13) → Patients/Journey (S12–14).
 
-- Reemplazar los `get*` de `src/data/mockData.ts` por la API real (el contrato de tipos de
-  `src/types.ts` ya está pensado para esto). Filtros pasan de multiplicadores fake a
-  queries reales: rango de fechas particionado, cash/insurance real por registro. Deltas
-  leen los snapshots acumulados desde la semana 3.
+- **El frontend hoy no tiene plomería de datos:** los `get*` de `src/data/mockData.ts` son
+  síncronos y se llaman directo en el render — no hay fetch, ni loading, ni estados de
+  error, ni auth. La primera entrega de este carril (S4–5, ~1.5–2 semanas-dev) es el
+  esqueleto: capa de datos async con loading/error states + la primera vista cableada.
+  El contrato de tipos de `src/types.ts` sí se conserva.
+- Filtros pasan de multiplicadores fake a queries reales: rango de fechas particionado,
+  cash/insurance real por registro. Deltas leen los snapshots acumulados desde la semana 3.
 - **Patient Journey es una mini-app, no un JSON:** nombres/teléfonos/emails no pueden
   servirse como JSON estático detrás de una contraseña compartida. Entrega propia
   (1.5–2 semanas dentro de F8): API read-only con login por usuario, scoping por rol
@@ -294,7 +332,7 @@ es como M1 y M2 son posibles). Orden: Today + Overview (S4–5) → Team/Employe
   construyen sobre los datos de tallies de F7 (~1 semana) o esos 2 goals se descopan del
   go-live explícitamente.
 
-### Fase 9 — Validación anclada al cierre de mes y estabilización (semanas 13–16 · 12 oct–6 nov)
+### Fase 9 — Validación anclada al cierre de mes y estabilización (semanas 14–17 · 19 oct–13 nov)
 
 - Corrida en paralelo con validación **por tipo de dato**: cash/operacional contra la
   realidad conocida del founder y office manager (revenue del día, citas, llamadas);
@@ -307,8 +345,14 @@ es como M1 y M2 son posibles). Orden: Today + Overview (S4–5) → Team/Employe
 - Slot formal para **re-litigar las reglas de atribución de revenue** ahora que el staff
   las ve en pantalla (va a pasar; mejor agendado que absorbido como caos).
 - Runbooks: scraper roto, rotación de credenciales, re-auth MFA, "nadie entra como el bot".
-- **🏁 HITO M4 (semana 16):** go-live. Funnel, tallies manuales y seguros recientes llevan
-  etiqueta "provisional" hasta que su historia madure (semanas 16–20).
+
+### Buffer nombrado (semana 18 · 16–20 nov)
+
+Absorbe lo que este plan sabe que existe: ausencias, break-fix acumulado de pipes vivos,
+decisiones que llegaron tarde. Si llega vacío, el go-live se adelanta.
+
+**🏁 HITO M4 (semana 18):** go-live. Funnel, tallies manuales y seguros recientes llevan
+etiqueta "provisional" hasta que su historia madure (semanas 18–22).
 
 ---
 
@@ -319,22 +363,23 @@ es como M1 y M2 son posibles). Orden: Today + Overview (S4–5) → Team/Employe
 | R1 | ECW resulta **self-hosted** (¡riesgo positivo!) | Media | −4 sem | SQL directo a MySQL; F2/F3/F6 se comprimen |
 | R2 | Reportes ECW **no programables** en nuestra licencia | **Alta** | Ninguno en M1 | La ruta oficial de M1 ya es la descarga manual; el bot (F3) automatiza después |
 | R3 | **eBO caro o lento** | Alta | Detalle billing post-go-live | Billing v1 con reportes estándar es el default; eBO es upgrade con decisión en semana 6 |
-| R4 | Update de ECW **rompe el bot** | Alta (recurrente) | 1–2 días por evento | Selectores robustos, tripwires de vacíos/truncados, screenshot-on-failure sin PHI |
+| R4 | Update de ECW **rompe el bot** | Alta (recurrente) | 1–2 días por evento, compite con el build | Selectores robustos, tripwires de vacíos/truncados; ya presupuestado en el paso de 16→18 semanas |
 | R5 | No hay seat 8x8 **X4+** (sin él no hay NINGÚN camino 8x8) | Media | +1–2 sem | Comprar seat en semana 1; es la primera pregunta del checklist |
 | R6 | **Nadie tiene admin de ECW** / security class insuficiente | Media | +2–6 sem | Identificarlo día 1; ticket a ECW en semana 1, no en semana 4 |
-| R7 | El staff **no adopta** la captura de leads/tallies | Media–alta | Funnel/Journey débiles | Formularios <30 seg atados a rituales existentes, métrica de cumplimiento semanal, criterio de salida ≥90%×2sem, champion interno |
+| R7 | El staff **no adopta** la captura de leads/tallies | Media–alta | Funnel/Journey débiles | Formularios <30 seg atados a rituales, métrica de cumplimiento semanal, criterio ≥90%×2sem, arranque en S4 deja re-intentos |
 | R8 | **Papeleo BAA/SRA se estanca** en la firma del founder | Media | Bloquea acceso a PHI (sem 3) | Fecha + default en la lista de decisiones; plantillas listas en semana 1 |
 | R9 | Push descuidado publica **datos reales en Pages público** | — | Incidente reportable | Deploy neutralizado el día 1 (gate de M1); CI que falla si el build público referencia API real |
 | R10 | Reportes ECW con **row caps/truncamiento silencioso** | Media | Datos parciales invisibles | Tripwire footer-total vs filas parseadas; exports partidos por rango de fecha |
 | R11 | Cuentas de terceros en manos de **agencia/MSP** (Meta BM, 8x8 admin) | Media | +días–semanas | Preguntas de ownership en semana 1; migrar/reclamar assets como tarea con dueño |
 | R12 | MFA/política de sesión de ECW cambia | Media | +2–5 días | Cuenta de servicio dedicada, TOTP re-enrolable, humano-en-el-loop documentado |
-| R13 | Subestimación general (falacia de planificación) | — | — | ×1.5 dev propio, ×2–3 calendario en terceros, aplicado también a eBO y EHI; buffers en F3/F9 |
+| R13 | **Ausencias/enfermedad** en 4 meses (agosto, Labor Day) | Alta | ~1–1.5 sem por dev | Presupuestado: es parte de la diferencia 16→18; carriles con dueño único evitan bloqueos cruzados |
+| R14 | Subestimación general (falacia de planificación) | — | — | ×1.5 dev propio, ×2–3 calendario en terceros (aplicado también a eBO y EHI); buffer terminal nombrado |
 
 ## 5. Después del go-live: maduración y mantenimiento
 
-Esto no termina en la semana 16:
+Esto no termina en la semana 18:
 
-- **Semanas 16–20 (maduración):** denial rate con ventana suficiente, funnel con historia
+- **Semanas 18–22 (maduración):** denial rate con ventana suficiente, funnel con historia
   creíble, tallies estabilizados, y detalle eBO si se firmó a tiempo. Las etiquetas
   "provisional" se van cayendo solas.
 - **2–5 h/semana** de mantenimiento estable (la industria subestima esto 4–6×).
@@ -350,4 +395,4 @@ Esto no termina en la semana 16:
 | 1 | Presupuesto seat 8x8 X4 · autorizar cotización eBO · firmar BAA dev · ok neutralizar Pages | Sin seat no hay datos 8x8 (se acepta el hueco); Pages se neutraliza igual (no negociable con PHI) |
 | 2 | Dónde se capturan leads · definiciones de métricas · cadencia Today · reglas de atribución v0 | Formulario propio; definiciones propuestas por el equipo; Today diario con badge; atribución simple por rendering provider |
 | 6 | Firmar o matar **eBO** · alcance de **Patient Journey** v1 (mini-app con RBAC vs versión sin datos de contacto) | eBO muerto (billing v1 queda); Journey descopado a iniciales+MRN |
-| 13–14 | Sign-off de validación (anclada al cierre de octubre) | No hay default: sin sign-off no hay go-live |
+| 15–16 | Sign-off de validación (anclada al cierre de octubre) | No hay default: sin sign-off no hay go-live |
