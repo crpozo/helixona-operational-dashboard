@@ -351,7 +351,7 @@ export function getRoles(scale: number): Role[] {
     },
     {
       id: 'pa',
-      name: 'Physician Associate · Brock',
+      name: 'Physician Associate · Brooke',
       summary: 'Patient visits, procedures, and EBOO clearances under the provider.',
       source: 'ECW',
       headcount: 1,
@@ -362,7 +362,7 @@ export function getRoles(scale: number): Role[] {
         { label: 'Follow-ups', value: r(212), format: 'number' },
         { label: 'Unlocked charts', value: r(9), format: 'number', lowerIsBetter: true },
       ],
-      leaderboard: [{ name: 'Brock', metric: r(386), format: 'number' }],
+      leaderboard: [{ name: 'Brooke', metric: r(386), format: 'number' }],
     },
     {
       id: 'pcc',
@@ -659,7 +659,7 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Calls to patients', value: 140, format: 'number' },
     { label: 'Unlocked charts', value: 11, format: 'number', lowerIsBetter: true },
   ] },
-  { id: 'e3', name: 'Brock', role: 'Physician Associate', roleId: 'pa', utilizationPct: 91, revenue: 58_200, metrics: [
+  { id: 'e3', name: 'Brooke', role: 'Physician Associate', roleId: 'pa', utilizationPct: 91, revenue: 58_200, metrics: [
     { label: 'Patients seen', value: 386, format: 'number' },
     { label: 'Procedures', value: 248, format: 'number' },
     { label: 'EBOO clearances', value: 84, format: 'number' },
@@ -916,7 +916,7 @@ export function getEmployeesToday(): TodayEmployee[] {
   const shift: Record<string, { patients: number; revenue: number; target: number }> = {
     e1: { patients: 18, revenue: 4_800, target: 4_500 }, // Dr. Drannikov
     e2: { patients: 16, revenue: 3_600, target: 3_400 }, // Dr. Bakman
-    e3: { patients: 14, revenue: 2_900, target: 2_800 }, // Brock
+    e3: { patients: 14, revenue: 2_900, target: 2_800 }, // Brooke
     e4: { patients: 9, revenue: 1_900, target: 2_000 }, // Marie
     e5: { patients: 11, revenue: 1_400, target: 1_300 }, // Vee (PCC)
     e6: { patients: 24, revenue: 2_100, target: 2_400 }, // Yazmin
