@@ -21,7 +21,9 @@ import {
   getModalityBreakdown,
   getNewPatientPipeline,
   getPatientFunnel,
+  getPatientPopulation,
   getPrograms,
+  getSuccessfulLeadSources,
 } from '../data/mockData'
 import { CATEGORICAL } from '../lib/colors'
 
@@ -39,8 +41,12 @@ const TONE: Record<string, string> = {
 
 export default function Patients({ scale, payment }: Props) {
   const kpis = getExecutiveKpis(scale, payment).filter((k) =>
-    ['active-patients', 'new-patients', 'avg-wait', 'ivs'].includes(k.id),
+    ['active-patients', 'new-patients', 'avg-wait'].includes(k.id),
   )
+  const activePatients = getExecutiveKpis(scale, payment).find((k) => k.id === 'active-patients')?.value ?? 0
+  const pop = getPatientPopulation(scale)
+  const ivRatioPct = Math.round((pop.activeIvPatients / pop.totalIvScripts) * 100)
+  const sources = getSuccessfulLeadSources(scale)
   const funnel = getPatientFunnel(scale)
   const pipeline = getNewPatientPipeline(scale)
   const programs = getPrograms()
@@ -51,7 +57,7 @@ export default function Patients({ scale, payment }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpis.map((k) => (
           <KpiCard
             key={k.id}
@@ -62,6 +68,40 @@ export default function Patients({ scale, payment }: Props) {
         ))}
       </div>
       {selKpi && <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />}
+
+      {/* Patient population — stock metrics (don't rescale with the period) */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Total patients</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">{pop.totalPatients.toLocaleString()}</p>
+          <p className="mt-1 text-[11px] text-slate-400">All patients on record</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Following plan of care</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">
+            {pop.followingPoc.toLocaleString()}
+            {activePatients > 0 && (
+              <span className="ml-2 text-sm font-semibold text-slate-400">
+                {Math.round((pop.followingPoc / activePatients) * 100)}% of active
+              </span>
+            )}
+          </p>
+          <p className="mt-1 text-[11px] text-slate-400">Active patients on track with their POC</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">IV patients</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">{pop.ivPatients.toLocaleString()}</p>
+          <p className="mt-1 text-[11px] text-slate-400">Distinct patients receiving IVs in the period</p>
+        </div>
+        <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
+          <p className="text-sm font-medium text-brand-700">Active IV patients / IV scripts</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">
+            {pop.activeIvPatients}/{pop.totalIvScripts}
+            <span className="ml-2 text-sm font-semibold text-brand-700">{ivRatioPct}%</span>
+          </p>
+          <p className="mt-1 text-[11px] text-brand-700/70">Patients actively coming in vs. all with an IV script</p>
+        </div>
+      </div>
 
       {/* Inactive patients — click to get the call list */}
       <Card
@@ -145,6 +185,34 @@ export default function Patients({ scale, payment }: Props) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Conversion funnel" subtitle="From lead to first appointment · also shown in Marie's section (Team & Roles)">
           <FunnelChart funnel={funnel} />
+        </Card>
+
+        <Card
+          title="What's working"
+          subtitle="Lead sources of successful (still-active) patients · feeds the AI Insights analysis"
+        >
+          <div className="space-y-2.5">
+            {(() => {
+              const total = sources.reduce((s, x) => s + x.patients, 0)
+              return sources.map((s) => {
+                const pct = Math.round((s.patients / total) * 100)
+                return (
+                  <div key={s.source}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="font-medium text-slate-600">{s.source}</span>
+                      <span className="tabular-nums text-slate-500">
+                        {s.patients.toLocaleString()}
+                        <span className="ml-1.5 text-xs text-slate-400">({pct}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })
+            })()}
+          </div>
         </Card>
 
         <Card title="Patients by modality" subtitle="Service mix">

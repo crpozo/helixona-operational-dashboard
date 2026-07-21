@@ -435,21 +435,31 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'ma',
       name: 'Medical Assistants',
-      summary: 'Vitals, MA visits, injections, messages, and care plans. POC releases pending bot check with C.',
+      summary: 'Vitals, MA visits, injections, and patient messages.',
       source: 'ECW',
-      headcount: 2,
+      headcount: 1,
       metrics: [
         { label: 'Vitals taken', value: r(2_310), format: 'number' },
         { label: 'MA Visits', value: r(1_140), format: 'number' },
         { label: 'Injections', value: r(1_480), format: 'number' },
         { label: 'Patient messages', value: r(1_120), format: 'number' },
-        { label: 'Plan of care releases', value: r(420), format: 'number' },
         { label: 'Extension calls', value: r(560), format: 'number' },
       ],
-      leaderboard: [
-        { name: 'Charlene (Virtual)', metric: r(540), format: 'number' },
-        { name: 'Wesley', metric: r(498), format: 'number' },
+      leaderboard: [{ name: 'Wesley', metric: r(498), format: 'number' }],
+    },
+    {
+      id: 'charlene',
+      name: 'Virtual MA · Charlene',
+      summary: 'Chart preps, POP, care plans, and virtual patient support.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'Chart preps', value: r(340), format: 'number' },
+        { label: 'POP', value: r(120), format: 'number' },
+        { label: 'Care plans', value: r(220), format: 'number' },
+        { label: 'Patient messages', value: r(590), format: 'number' },
       ],
+      leaderboard: [{ name: 'Charlene (Virtual)', metric: r(340), format: 'number' }],
     },
     {
       id: 'medic',
@@ -474,7 +484,7 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'nurse',
       name: 'Nurses · Nick',
-      summary: 'EBOOs, ratio, upsells, port access/deaccess, and supplies.',
+      summary: 'EBOOs, ratio, upsells, and port access/deaccess. Supplies live in the EMR inventory module (Juan enters them manually).',
       source: 'ECW',
       headcount: 1,
       metrics: [
@@ -483,7 +493,6 @@ export function getRoles(scale: number): Role[] {
         { label: 'Ratio', value: 3, format: 'number' },
         { label: 'Upsells ($ vol.)', value: r(12_400), format: 'currency' },
         { label: 'Port access / deaccess', value: r(86), format: 'number' },
-        { label: '# of supplies', value: r(640), format: 'number' },
       ],
       leaderboard: [{ name: 'Nick', metric: r(188), format: 'number' }],
     },
@@ -500,23 +509,21 @@ export function getRoles(scale: number): Role[] {
         { label: 'Same-day results uploaded', value: 94, format: 'percent', target: 100 },
         { label: 'BioCharger sessions', value: r(96), format: 'number' },
         { label: 'Locked BioCharger notes', value: r(5), format: 'number', lowerIsBetter: true },
+        { label: 'Unlocked notes (all)', value: r(13), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [{ name: 'Kyle', metric: r(186), format: 'number' }],
     },
     {
       id: 'labs',
       name: 'Lab Draws',
-      summary: 'Draws by lab (Quest, MDL), kits, and processing time by staff.',
+      summary: 'Draws by lab (Quest, MDL) and volume processed by staff.',
       source: 'ECW + Lab portals',
       headcount: 0,
       metrics: [
         { label: 'Quest draws', value: r(180), format: 'number' },
         { label: 'MDL draws', value: r(96), format: 'number' },
-        { label: 'MDL kits', value: r(64), format: 'number' },
         { label: 'Processed by Kyle', value: r(210), format: 'number' },
         { label: 'Processed by Bea', value: r(140), format: 'number' },
-        { label: 'Total time spent by Kyle (hrs)', value: r(38), format: 'number' },
-        { label: 'Total time spent by Bea (hrs)', value: r(26), format: 'number' },
       ],
       leaderboard: [
         { name: 'Kyle', metric: r(210), format: 'number' },
@@ -541,6 +548,8 @@ export function getRoles(scale: number): Role[] {
         { label: 'Open disputes', value: r(12), format: 'number', lowerIsBetter: true },
         { label: 'Write-offs', value: r(14_200), format: 'currency', lowerIsBetter: true },
         { label: 'Claims paid', value: r(612), format: 'number' },
+        { label: 'Unlocked encounters', value: r(9), format: 'number', lowerIsBetter: true },
+        { label: 'Encounters without claims', value: r(17), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [
         { name: 'Vignesh', metric: r(420), format: 'number' },
@@ -624,6 +633,33 @@ export function getNewPatientTeam() {
   }
 }
 
+// Patient population stats for the Patients tab. Totals are stock values
+// (how many patients exist), so they don't scale with the reporting period.
+export function getPatientPopulation(scale: number) {
+  const r = (n: number) => Math.round(n * scale)
+  return {
+    totalPatients: 3_240,
+    followingPoc: r(438),
+    ivPatients: r(412),
+    activeIvPatients: 128,
+    totalIvScripts: 164,
+  }
+}
+
+// Lead sources of patients who converted AND stayed active — "what's working".
+// Feeds the AI Insights analysis of which acquisition channels produce
+// successful long-term patients.
+export function getSuccessfulLeadSources(scale: number) {
+  const r = (n: number) => Math.round(n * scale)
+  return [
+    { source: 'Referral', patients: r(46) },
+    { source: 'EBOO landing page', patients: r(28) },
+    { source: 'Instagram', patients: r(22) },
+    { source: 'Ad spend', patients: r(18) },
+    { source: 'Google / SEO', patients: r(12) },
+  ]
+}
+
 // New-patient pipeline status (for kanban-style cards)
 export function getNewPatientPipeline(scale: number) {
   const r = (n: number) => Math.round(n * scale)
@@ -696,12 +732,11 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Missed calls', value: 140, format: 'number', lowerIsBetter: true },
     { label: 'Voicemails', value: 84, format: 'number' },
   ] },
-  { id: 'e8', name: 'Charlene (Virtual)', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 91, revenue: 14_200, metrics: [
-    { label: 'Vitals taken', value: 1_240, format: 'number' },
-    { label: 'MA Visits', value: 610, format: 'number' },
-    { label: 'Injections', value: 780, format: 'number' },
+  { id: 'e8', name: 'Charlene (Virtual)', role: 'Virtual MA', roleId: 'charlene', utilizationPct: 91, revenue: 14_200, metrics: [
+    { label: 'Chart preps', value: 340, format: 'number' },
+    { label: 'POP', value: 120, format: 'number' },
+    { label: 'Care plans', value: 220, format: 'number' },
     { label: 'Patient messages', value: 590, format: 'number' },
-    { label: 'Plan of care releases', value: 220, format: 'number' },
   ] },
   { id: 'e9', name: 'Wesley', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 88, revenue: 12_800, metrics: [
     { label: 'Vitals taken', value: 1_070, format: 'number' },
@@ -741,6 +776,7 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Locked laser notes', value: 8, format: 'number', lowerIsBetter: true },
     { label: 'Diagnostics appointments', value: 248, format: 'number' },
     { label: 'BioCharger sessions', value: 96, format: 'number' },
+    { label: 'Unlocked notes (all)', value: 13, format: 'number', lowerIsBetter: true },
   ] },
   { id: 'e15', name: 'Vignesh', role: 'Billing', roleId: 'billing', utilizationPct: 93, revenue: 52_300, metrics: [
     { label: 'Insurance collections', value: 52_300, format: 'currency' },

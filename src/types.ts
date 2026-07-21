@@ -53,6 +53,7 @@ export type RoleId =
   | 'newPatient'
   | 'frontDesk'
   | 'ma'
+  | 'charlene'
   | 'medic'
   | 'nurse'
   | 'technician'
