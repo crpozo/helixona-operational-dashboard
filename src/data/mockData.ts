@@ -371,7 +371,7 @@ export function getRoles(scale: number): Role[] {
       ],
       leaderboard: [
         { name: 'Charlenne (Remote)', metric: r(540), format: 'number' },
-        { name: 'Bee', metric: r(498), format: 'number' },
+        { name: 'Brooke', metric: r(498), format: 'number' },
         { name: 'Heyli', metric: r(442), format: 'number' },
       ],
     },
@@ -588,7 +588,7 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Stars', value: 580, format: 'number' },
     { label: 'Misses', value: 24, format: 'number', lowerIsBetter: true },
   ] },
-  { id: 'e5', name: 'Bee', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 88, revenue: 12_800, metrics: [
+  { id: 'e5', name: 'Brooke', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 88, revenue: 12_800, metrics: [
     { label: 'Vitals taken', value: 760, format: 'number' },
     { label: 'Procedures', value: 498, format: 'number' },
     { label: 'EBOO booked', value: 70, format: 'number' },
@@ -781,7 +781,7 @@ export function getEmployeesToday(): TodayEmployee[] {
     e2: { patients: 9, revenue: 1_900, target: 2_000 }, // Marie
     e3: { patients: 24, revenue: 2_100, target: 2_400 }, // Jazzmine
     e4: { patients: 12, revenue: 980, target: 900 }, // Charlenne
-    e5: { patients: 10, revenue: 820, target: 900 }, // Bee
+    e5: { patients: 10, revenue: 820, target: 900 }, // Brooke
     e6: { patients: 9, revenue: 760, target: 900 }, // Heyli
     e7: { patients: 0, revenue: 1_480, target: 1_300 }, // Karina (RCM)
   }
