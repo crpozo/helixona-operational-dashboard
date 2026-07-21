@@ -11,6 +11,7 @@ import {
 import { useState } from 'react'
 import { Phone } from 'lucide-react'
 import Card from '../components/Card'
+import FunnelChart from '../components/FunnelChart'
 import TrendPanel from '../components/TrendPanel'
 import KpiCard from '../components/KpiCard'
 import type { Kpi, PaymentType } from '../types'
@@ -115,14 +116,20 @@ export default function Patients({ scale, payment }: Props) {
         )}
       </Card>
 
-      {/* New-patient pipeline */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {pipeline.map((p) => (
-          <div key={p.status} className={`rounded-2xl border p-4 ${TONE[p.tone]}`}>
-            <p className="text-3xl font-bold tabular-nums">{p.count.toLocaleString()}</p>
-            <p className="mt-1 text-sm font-medium">{p.status}</p>
-          </div>
-        ))}
+      {/* Population-level stats — leads/onboarding detail lives with Marie (Team & Roles) */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className={`rounded-2xl border p-4 ${TONE.brand}`}>
+          <p className="text-3xl font-bold tabular-nums">{Math.round(1_720 * scale).toLocaleString()}</p>
+          <p className="mt-1 text-sm font-medium">Total calls</p>
+        </div>
+        {pipeline
+          .filter((p) => p.status === 'Waitlisted')
+          .map((p) => (
+            <div key={p.status} className={`rounded-2xl border p-4 ${TONE[p.tone]}`}>
+              <p className="text-3xl font-bold tabular-nums">{p.count.toLocaleString()}</p>
+              <p className="mt-1 text-sm font-medium">{p.status}</p>
+            </div>
+          ))}
       </div>
 
       {/* Helixona program tracks */}
@@ -136,36 +143,8 @@ export default function Patients({ scale, payment }: Props) {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card title="Conversion funnel" subtitle="From lead to first appointment">
-          <div className="space-y-2.5">
-            {funnel.map((stage, i) => {
-              const pct = Math.round((stage.count / funnel[0].count) * 100)
-              const prev = i > 0 ? funnel[i - 1].count : stage.count
-              const stepConv = prev ? Math.round((stage.count / prev) * 100) : 100
-              const denied = stage.stage.startsWith('Denied')
-              return (
-                <div key={stage.stage}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className={`font-medium ${denied ? 'text-rose-600' : 'text-slate-600'}`}>{stage.stage}</span>
-                    <span className="tabular-nums text-slate-500">
-                      {stage.count.toLocaleString()}
-                      {denied ? (
-                        <span className="ml-2 text-xs text-rose-400">left the funnel</span>
-                      ) : (
-                        i > 0 && <span className="ml-2 text-xs text-slate-400">({stepConv}% step)</span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: denied ? '#e11d48' : CATEGORICAL[i % CATEGORICAL.length] }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+        <Card title="Conversion funnel" subtitle="From lead to first appointment · also shown in Marie's section (Team & Roles)">
+          <FunnelChart funnel={funnel} />
         </Card>
 
         <Card title="Patients by modality" subtitle="Service mix">

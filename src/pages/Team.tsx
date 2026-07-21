@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Users } from 'lucide-react'
 import Card from '../components/Card'
+import FunnelChart from '../components/FunnelChart'
 import type { RoleMetric } from '../types'
-import { getRoles } from '../data/mockData'
+import { getPatientFunnel, getRoles } from '../data/mockData'
 import { formatValue } from '../lib/format'
 
 interface Props {
@@ -84,7 +85,7 @@ export default function Team({ scale }: Props) {
         <Card
           title={active.name}
           subtitle={active.summary}
-          className="lg:col-span-2"
+          className={active.id === 'newPatient' ? 'lg:col-span-2' : 'lg:col-span-3'}
           action={
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
               Source: {active.source}
@@ -98,30 +99,12 @@ export default function Team({ scale }: Props) {
           </div>
         </Card>
 
-        {/* Leaderboard */}
-        <Card title="Top performers" subtitle="By the role's primary metric">
-          <ol className="space-y-2.5">
-            {active.leaderboard.map((e, i) => (
-              <li key={e.name} className="flex items-center gap-3 rounded-xl border border-slate-100 p-2.5">
-                <span
-                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                    i === 0
-                      ? 'bg-amber-100 text-amber-700'
-                      : i === 1
-                        ? 'bg-slate-200 text-slate-600'
-                        : 'bg-orange-100 text-orange-700'
-                  }`}
-                >
-                  {i + 1}
-                </span>
-                <span className="flex-1 text-sm font-medium text-ink-900">{e.name}</span>
-                <span className="text-sm font-bold tabular-nums text-slate-700">
-                  {formatValue(e.metric, e.format)}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </Card>
+        {/* Marie owns the lead funnel — same funnel as the Patients tab */}
+        {active.id === 'newPatient' && (
+          <Card title="Conversion funnel" subtitle="From lead to first appointment">
+            <FunnelChart funnel={getPatientFunnel(scale)} />
+          </Card>
+        )}
       </div>
 
       {/* Roll-up across all roles (manager view) */}
