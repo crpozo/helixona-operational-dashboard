@@ -451,8 +451,26 @@ export function getRoles(scale: number): Role[] {
         { name: 'Wesley', metric: r(498), format: 'number' },
       ],
     },
-    // Medics tab is PAUSED until the process is defined with Juan and Cassandra —
-    // re-add the role block here once metrics are agreed.
+    {
+      id: 'medic',
+      name: 'Medics',
+      summary: 'Starts, misses, IVs administered & booked, and unlocked notes.',
+      source: 'ECW',
+      headcount: 3,
+      metrics: [
+        { label: 'IV starts', value: r(1_620), format: 'number' },
+        { label: 'IV misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
+        { label: 'Cost of misses', value: r(74) * 3.2, format: 'currency', lowerIsBetter: true },
+        { label: 'IVs administered', value: r(1_540), format: 'number' },
+        { label: 'IVs booked', value: r(1_720), format: 'number' },
+        { label: 'Unlocked notes', value: r(21), format: 'number', lowerIsBetter: true },
+      ],
+      leaderboard: [
+        { name: 'Bea', metric: r(1_540), format: 'number' },
+        { name: 'Juan', metric: r(1_280), format: 'number' },
+        { name: 'Nate', metric: r(1_090), format: 'number' },
+      ],
+    },
     {
       id: 'nurse',
       name: 'Nurses · Nick',
@@ -973,7 +991,7 @@ export function getGoals(): Goal[] {
   return [
     { id: 'g1', label: 'POC penetration', area: 'PCC', value: 64, target: 70, format: 'percent' },
     { id: 'g2', label: 'Monthly revenue', area: 'Revenue', value: 326_800, target: 340_000, format: 'currency' },
-    // 'Medic misses' goal paused along with the Medics tab (process pending with Juan & Cassandra).
+    { id: 'g3', label: 'Medic misses', area: 'Medics', value: 96, target: 60, format: 'number', lowerIsBetter: true },
     { id: 'g4', label: 'Outbound calls', area: 'Front Desk', value: 960, target: 1_200, format: 'number' },
     { id: 'g5', label: 'Claim denial rate', area: 'Billing', value: 11, target: 8, format: 'percent', lowerIsBetter: true },
     { id: 'g6', label: 'Unit occupancy', area: 'Treatments', value: 82, target: 80, format: 'percent' },
