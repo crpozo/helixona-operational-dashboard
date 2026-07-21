@@ -351,7 +351,7 @@ export function getRoles(scale: number): Role[] {
     },
     {
       id: 'pa',
-      name: 'Physician Associate · Brock',
+      name: 'Physician Associate · Brooke',
       summary: 'Patient visits, procedures, and EBOO clearances under the provider.',
       source: 'ECW',
       headcount: 1,
@@ -362,7 +362,7 @@ export function getRoles(scale: number): Role[] {
         { label: 'Follow-ups', value: r(212), format: 'number' },
         { label: 'Unlocked charts', value: r(9), format: 'number', lowerIsBetter: true },
       ],
-      leaderboard: [{ name: 'Brock', metric: r(386), format: 'number' }],
+      leaderboard: [{ name: 'Brooke', metric: r(386), format: 'number' }],
     },
     {
       id: 'pcc',
@@ -377,7 +377,7 @@ export function getRoles(scale: number): Role[] {
         { label: 'General f/u calls', value: r(220), format: 'number' },
         { label: 'MEAD f/u calls', value: r(64), format: 'number' },
       ],
-      leaderboard: [{ name: 'Vee', metric: r(412), format: 'number' }],
+      leaderboard: [{ name: 'Bee', metric: r(412), format: 'number' }],
     },
     {
       id: 'newPatient',
@@ -525,7 +525,7 @@ export function getRoles(scale: number): Role[] {
       name: 'Billing',
       summary: 'VOBs, collections, claims, denials, appeals, disputes, and write-offs.',
       source: 'ECW Billing',
-      headcount: 3,
+      headcount: 2,
       metrics: [
         { label: 'Insurance collections', value: r(98_400), format: 'currency', target: r(110_000) },
         { label: 'VOBs completed', value: r(286), format: 'number' },
@@ -542,7 +542,6 @@ export function getRoles(scale: number): Role[] {
       leaderboard: [
         { name: 'Vignesh', metric: r(420), format: 'number' },
         { name: 'Kamalesh', metric: r(362), format: 'number' },
-        { name: 'Bhavya', metric: r(298), format: 'number' },
       ],
     },
     {
@@ -659,7 +658,7 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Calls to patients', value: 140, format: 'number' },
     { label: 'Unlocked charts', value: 11, format: 'number', lowerIsBetter: true },
   ] },
-  { id: 'e3', name: 'Brock', role: 'Physician Associate', roleId: 'pa', utilizationPct: 91, revenue: 58_200, metrics: [
+  { id: 'e3', name: 'Brooke', role: 'Physician Associate', roleId: 'pa', utilizationPct: 91, revenue: 58_200, metrics: [
     { label: 'Patients seen', value: 386, format: 'number' },
     { label: 'Procedures', value: 248, format: 'number' },
     { label: 'EBOO clearances', value: 84, format: 'number' },
@@ -671,7 +670,7 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'Texts', value: 1_460, format: 'number' },
     { label: 'Onboarded', value: 132, format: 'number' },
   ] },
-  { id: 'e5', name: 'Vee', role: 'PCC', roleId: 'pcc', utilizationPct: 90, revenue: 18_900, metrics: [
+  { id: 'e5', name: 'Bee', role: 'PCC', roleId: 'pcc', utilizationPct: 90, revenue: 18_900, metrics: [
     { label: 'PCC appointments', value: 412, format: 'number' },
     { label: 'Follow-up calls · NPS', value: 180, format: 'number' },
     { label: 'NP f/u calls', value: 150, format: 'number' },
@@ -744,12 +743,6 @@ const EMPLOYEE_SEEDS: EmployeeSeed[] = [
     { label: 'VOBs completed', value: 98, format: 'number' },
     { label: 'Appeals sent', value: 16, format: 'number' },
     { label: 'Write-offs', value: 4_900, format: 'currency', lowerIsBetter: true },
-  ] },
-  { id: 'e17', name: 'Bhavya', role: 'Billing', roleId: 'billing', utilizationPct: 85, revenue: 38_400, metrics: [
-    { label: 'Insurance collections', value: 38_400, format: 'currency' },
-    { label: 'VOBs completed', value: 68, format: 'number' },
-    { label: 'Appeals sent', value: 7, format: 'number' },
-    { label: 'Open disputes', value: 5, format: 'number', lowerIsBetter: true },
   ] },
   { id: 'e18', name: 'Karina', role: 'Operations Manager', roleId: 'ops', utilizationPct: 90, revenue: 0, metrics: [
     { label: 'Avg days of appts / provider', value: 6.2, format: 'days' },
@@ -916,9 +909,9 @@ export function getEmployeesToday(): TodayEmployee[] {
   const shift: Record<string, { patients: number; revenue: number; target: number }> = {
     e1: { patients: 18, revenue: 4_800, target: 4_500 }, // Dr. Drannikov
     e2: { patients: 16, revenue: 3_600, target: 3_400 }, // Dr. Bakman
-    e3: { patients: 14, revenue: 2_900, target: 2_800 }, // Brock
+    e3: { patients: 14, revenue: 2_900, target: 2_800 }, // Brooke
     e4: { patients: 9, revenue: 1_900, target: 2_000 }, // Marie
-    e5: { patients: 11, revenue: 1_400, target: 1_300 }, // Vee (PCC)
+    e5: { patients: 11, revenue: 1_400, target: 1_300 }, // Bee (PCC)
     e6: { patients: 24, revenue: 2_100, target: 2_400 }, // Yazmin
     e8: { patients: 12, revenue: 980, target: 900 }, // Charlene
     e10: { patients: 16, revenue: 1_450, target: 1_300 }, // Bea
