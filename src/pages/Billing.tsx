@@ -37,7 +37,7 @@ interface Props {
 // Which payer field backs each KPI, for the insurance-weight drill-down.
 const WEIGHT_FIELD: Record<string, keyof PayerClaims> = {
   'billed': 'billed',
-  'claims-sent': 'claims',
+  'pending-claims': 'claims',
   'days-to-submit': 'avgDaysToPay',
   'days-to-pay': 'avgDaysToPay',
   'denial-rate': 'denialRate',

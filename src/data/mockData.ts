@@ -1033,7 +1033,7 @@ export function getInsuranceKpis(scale: number = 1): Kpi[] {
   const r = (n: number) => Math.round(n * scale)
   return [
     { id: 'billed', label: 'Billed', value: r(291_800), format: 'currency', deltaPct: 6.0, trend: 'up', hint: 'Claims billed in the period' },
-    { id: 'claims-sent', label: 'Claims sent', value: r(782), format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Claims submitted in the period' },
+    { id: 'pending-claims', label: 'Pending claims', value: r(12), format: 'number', deltaPct: -8.0, trend: 'down', lowerIsBetter: true, hint: 'Claims created but not yet sent to the payer' },
     { id: 'days-to-submit', label: 'Avg days to submit', value: 1.8, format: 'days', deltaPct: -8.0, trend: 'down', lowerIsBetter: true, hint: 'Encounter → claim sent' },
     { id: 'days-to-pay', label: 'Avg days to pay', value: 38, format: 'days', deltaPct: -3.0, trend: 'down', lowerIsBetter: true, hint: 'Weighted across payers' },
     { id: 'denial-rate', label: 'Total denial rate', value: 11, format: 'percent', deltaPct: 1.5, trend: 'up', lowerIsBetter: true, hint: '86 claims denied (11%)' },
