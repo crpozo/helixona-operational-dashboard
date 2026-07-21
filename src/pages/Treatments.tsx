@@ -1,20 +1,30 @@
 import { useState } from 'react'
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
+import { X } from 'lucide-react'
 import Card from '../components/Card'
-import { getHourlyOccupancy, getOccupancy, getTreatments } from '../data/mockData'
+import type { PaymentType, Treatment } from '../types'
+import { getHourlyOccupancy, getOccupancy, getTreatments, getTreatmentTrend } from '../data/mockData'
 import { CATEGORICAL, COLORS } from '../lib/colors'
 import { formatCompact, formatValue } from '../lib/format'
 
 type Metric = 'occupancy' | 'revenue'
+
+interface Props {
+  scale: number
+  payment: PaymentType
+}
 
 function pctColor(pct: number): string {
   if (pct >= 90) return '#1c1c1c'
@@ -23,11 +33,30 @@ function pctColor(pct: number): string {
   return COLORS.slate
 }
 
-export default function Treatments() {
-  const treatments = getTreatments()
+/** Hover tooltip: appointments + occupancy with today's spots (e.g. 21/25). */
+function TreatmentTooltip({ active, payload }: { active?: boolean; payload?: { payload: Treatment }[] }) {
+  if (!active || !payload?.length) return null
+  const t = payload[0].payload
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
+      <p className="font-semibold text-ink-900">{t.name}</p>
+      <p className="mt-1 text-slate-600">Appointments: <span className="font-semibold">{t.treatments.toLocaleString()}</span></p>
+      <p className="text-slate-600">
+        Occupancy: <span className="font-semibold">{t.occupancyPct}%</span>{' '}
+        <span className="text-slate-400">({t.booked}/{t.capacity} spots today)</span>
+      </p>
+      <p className="text-slate-600">Revenue: <span className="font-semibold">{formatValue(t.revenue, 'currency')}</span></p>
+      <p className="mt-1 text-[10px] text-slate-400">Click for trend over time</p>
+    </div>
+  )
+}
+
+export default function Treatments({ scale, payment }: Props) {
+  const treatments = getTreatments(scale, payment)
   const units = getOccupancy()
   const hourly = getHourlyOccupancy()
   const [metric, setMetric] = useState<Metric>('revenue')
+  const [selected, setSelected] = useState<string | null>(null)
 
   const totalTreatments = treatments.reduce((s, t) => s + t.treatments, 0)
   const totalRevenue = treatments.reduce((s, t) => s + t.revenue, 0)
@@ -36,6 +65,8 @@ export default function Treatments() {
   const sorted = [...treatments].sort((a, b) =>
     metric === 'revenue' ? b.revenue - a.revenue : b.occupancyPct - a.occupancyPct,
   )
+
+  const trend = selected ? getTreatmentTrend(selected) : []
 
   return (
     <div className="space-y-6">
@@ -54,10 +85,14 @@ export default function Treatments() {
         </div>
       </div>
 
-      {/* Treatments by revenue / occupancy (toggle) */}
+      {/* Treatments by revenue / occupancy (toggle); hover = spots, click = trend */}
       <Card
         title="By treatment / modality"
-        subtitle={metric === 'revenue' ? 'Revenue per treatment type' : 'Occupancy per treatment type'}
+        subtitle={
+          metric === 'revenue'
+            ? 'Revenue per treatment type · hover for occupancy, click for trend'
+            : 'Occupancy per treatment type · hover for spots, click for trend'
+        }
         action={
           <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
             {(['revenue', 'occupancy'] as Metric[]).map((m) => (
@@ -86,8 +121,14 @@ export default function Treatments() {
               tickFormatter={(v) => (metric === 'revenue' ? `$${v / 1000}k` : `${v}%`)}
             />
             <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={155} />
-            <Tooltip formatter={(v: number) => (metric === 'revenue' ? formatCompact(v, 'currency') : `${v}%`)} />
-            <Bar dataKey={metric === 'revenue' ? 'revenue' : 'occupancyPct'} radius={[0, 6, 6, 0]} barSize={20}>
+            <Tooltip content={<TreatmentTooltip />} />
+            <Bar
+              dataKey={metric === 'revenue' ? 'revenue' : 'occupancyPct'}
+              radius={[0, 6, 6, 0]}
+              barSize={20}
+              className="cursor-pointer"
+              onClick={(d: { name?: string }) => d?.name && setSelected(d.name)}
+            >
               {sorted.map((t, i) => (
                 <Cell key={i} fill={metric === 'occupancy' ? pctColor(t.occupancyPct) : CATEGORICAL[i % CATEGORICAL.length]} />
               ))}
@@ -95,6 +136,52 @@ export default function Treatments() {
           </BarChart>
         </ResponsiveContainer>
       </Card>
+
+      {/* Trend over time for the clicked treatment */}
+      {selected && (
+        <Card
+          title={`${selected} · trend over time`}
+          subtitle="Monthly revenue, treatments, and occupancy"
+          action={
+            <button
+              onClick={() => setSelected(null)}
+              className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              title="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          }
+        >
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={trend} margin={{ left: -8, right: 8, top: 8 }}>
+                <defs>
+                  <linearGradient id="gTreat" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={COLORS.cash} stopOpacity={0.35} />
+                    <stop offset="95%" stopColor={COLORS.cash} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
+                <Tooltip formatter={(v: number) => formatCompact(v, 'currency')} />
+                <Area type="monotone" dataKey="revenue" name="Revenue" stroke={COLORS.cash} fill="url(#gTreat)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={trend} margin={{ left: -8, right: 8, top: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <Tooltip />
+                <Legend iconType="circle" />
+                <Bar dataKey="treatments" name="Treatments" fill={COLORS.insurance} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="occupancyPct" name="Occupancy %" fill={COLORS.cash} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Occupancy by unit */}

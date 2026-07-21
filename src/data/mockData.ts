@@ -14,6 +14,7 @@
 // =============================================================================
 
 import type {
+  AgingRow,
   Alert,
   DenialCategory,
   EmailCampaign,
@@ -246,6 +247,7 @@ export function getPatientFunnel(scale: number): FunnelStage[] {
     { stage: 'Onboarding', count: Math.round(204 * scale) },
     { stage: 'Patients', count: Math.round(132 * scale) },
     { stage: '1st appt. booked', count: Math.round(96 * scale) },
+    { stage: 'Denied / declined', count: Math.round(44 * scale) },
   ]
 }
 
@@ -258,25 +260,24 @@ interface CatalogItem {
   treatments: number
   occupancyPct: number
   revenue: number
+  capacity: number
+  booked: number
 }
 
 const SERVICE_CATALOG: CatalogItem[] = [
   // Therapies
-  { name: 'IV Therapy', patients: 540, treatments: 1_540, occupancyPct: 84, revenue: 96_400 },
-  { name: 'EBOO', patients: 188, treatments: 212, occupancyPct: 92, revenue: 121_300 },
-  { name: 'Platelet-Rich Plasma (PRP)', patients: 64, treatments: 88, occupancyPct: 61, revenue: 78_200 },
-  { name: 'Erchonia Laser Therapy', patients: 142, treatments: 410, occupancyPct: 68, revenue: 31_800 },
-  { name: 'Neuromuscular Therapy', patients: 132, treatments: 360, occupancyPct: 66, revenue: 26_800 },
-  { name: 'LymphStar LET Therapy', patients: 110, treatments: 320, occupancyPct: 63, revenue: 22_100 },
-  { name: 'BEMER Therapy', patients: 96, treatments: 280, occupancyPct: 55, revenue: 18_400 },
-  { name: 'BioCharger', patients: 88, treatments: 240, occupancyPct: 52, revenue: 14_600 },
-  { name: 'SCENAR Therapy', patients: 74, treatments: 190, occupancyPct: 49, revenue: 12_600 },
-  { name: 'Biomodulator Therapy', patients: 68, treatments: 160, occupancyPct: 47, revenue: 11_200 },
-  // Diagnostics (Functional Neuro Exam)
-  { name: 'RightEye Diagnostics', patients: 168, treatments: 168, occupancyPct: 58, revenue: 11_700 },
-  { name: 'Autonomic Nervous System', patients: 142, treatments: 142, occupancyPct: 54, revenue: 9_800 },
-  { name: 'InBody 970', patients: 312, treatments: 312, occupancyPct: 74, revenue: 9_400 },
-  { name: 'MEAD Analysis', patients: 96, treatments: 96, occupancyPct: 44, revenue: 6_200 },
+  { name: 'IV Therapy', patients: 540, treatments: 1_540, occupancyPct: 84, revenue: 96_400, capacity: 25, booked: 21 },
+  { name: 'EBOO', patients: 188, treatments: 212, occupancyPct: 92, revenue: 121_300, capacity: 8, booked: 7 },
+  { name: 'Platelet-Rich Plasma (PRP)', patients: 64, treatments: 88, occupancyPct: 61, revenue: 78_200, capacity: 6, booked: 4 },
+  { name: 'Erchonia Laser Therapy', patients: 142, treatments: 410, occupancyPct: 68, revenue: 31_800, capacity: 10, booked: 7 },
+  { name: 'Neuromuscular Therapy', patients: 132, treatments: 360, occupancyPct: 66, revenue: 26_800, capacity: 10, booked: 7 },
+  { name: 'LymphStar LET Therapy', patients: 110, treatments: 320, occupancyPct: 63, revenue: 22_100, capacity: 8, booked: 5 },
+  { name: 'BEMER Therapy', patients: 96, treatments: 280, occupancyPct: 55, revenue: 18_400, capacity: 8, booked: 4 },
+  { name: 'BioCharger', patients: 88, treatments: 240, occupancyPct: 52, revenue: 14_600, capacity: 6, booked: 3 },
+  { name: 'SCENAR Therapy', patients: 74, treatments: 190, occupancyPct: 49, revenue: 12_600, capacity: 6, booked: 3 },
+  { name: 'Biomodulator Therapy', patients: 68, treatments: 160, occupancyPct: 47, revenue: 11_200, capacity: 6, booked: 3 },
+  { name: 'Chiro', patients: 184, treatments: 520, occupancyPct: 72, revenue: 28_400, capacity: 14, booked: 10 },
+  { name: 'MEAD Analysis', patients: 96, treatments: 96, occupancyPct: 44, revenue: 6_200, capacity: 6, booked: 3 },
 ]
 
 /** Helixona program tracks patients enroll in. */
@@ -284,7 +285,6 @@ export function getPrograms() {
   return [
     { name: 'Wellness & Longevity', patients: 600 },
     { name: 'Chronic Illness', patients: 412 },
-    { name: 'Functional Neuro Exam', patients: 268 },
   ]
 }
 
@@ -309,102 +309,267 @@ export function getRoles(scale: number): Role[] {
     {
       id: 'provider',
       name: 'Provider · Dr. Drannikov',
-      summary: 'Patient visits, EBOOs, procedures, and IVs under the physician.',
+      summary: 'All appointment types, hormone replacement therapy, PRP, and procedures.',
       source: 'ECW',
       headcount: 1,
       metrics: [
-        { label: 'Patients seen', value: r(540), format: 'number' },
-        { label: 'EBOOs performed', value: r(188), format: 'number' },
-        { label: 'Procedures', value: r(420), format: 'number' },
-        { label: 'IVs supervised', value: r(1_540), format: 'number' },
-        { label: 'Revenue generated', value: r(96_400), format: 'currency' },
+        { label: 'Total appointments', value: r(540), format: 'number' },
+        { label: 'NP appts', value: r(96), format: 'number' },
+        { label: 'NP follow up appts', value: r(88), format: 'number' },
+        { label: 'Follow up appts', value: r(356), format: 'number' },
+        { label: 'Established New Patient', value: r(72), format: 'number' },
+        { label: 'Pellets - Female', value: r(44), format: 'number' },
+        { label: 'Pellets - Male', value: r(31), format: 'number' },
+        { label: 'Hormone replacement therapy', value: r(58), format: 'number' },
+        { label: 'PRP', value: r(34), format: 'number' },
+        { label: 'Prolozone', value: r(48), format: 'number' },
+        { label: 'TPI', value: r(62), format: 'number' },
+        { label: 'Acupuncture', value: r(84), format: 'number' },
+        { label: 'Microcurrent', value: r(52), format: 'number' },
+        { label: 'Telemed', value: r(76), format: 'number' },
+        { label: 'Transfer of Care appts (TOCPT)', value: r(18), format: 'number' },
+        { label: 'Locked charts', value: r(512), format: 'number' },
+        { label: 'Unlocked charts', value: r(14), format: 'number', lowerIsBetter: true },
       ],
-      leaderboard: [{ name: 'Dr. Drannikov', metric: r(96_400), format: 'currency' }],
+      leaderboard: [{ name: 'Dr. Drannikov', metric: r(540), format: 'number' }],
+    },
+    {
+      id: 'bakman',
+      name: 'Provider · Dr. Bakman',
+      summary: 'FPE appointments, Medicare FPE, and patient calls.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'Total appointments', value: r(110), format: 'number' },
+        { label: 'FPE appts (excl. Medicare)', value: r(72), format: 'number' },
+        { label: 'Medicare FPE appts', value: r(38), format: 'number' },
+        { label: 'Calls to patients', value: r(140), format: 'number' },
+        { label: 'POC reviews', value: r(96), format: 'number' },
+        { label: 'Unlocked charts', value: r(11), format: 'number', lowerIsBetter: true },
+      ],
+      leaderboard: [{ name: 'Dr. Bakman', metric: r(110), format: 'number' }],
+    },
+    {
+      id: 'pa',
+      name: 'Physician Associate · Brock',
+      summary: 'Patient visits, procedures, and EBOO clearances under the provider.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'Patients seen', value: r(386), format: 'number' },
+        { label: 'Procedures', value: r(248), format: 'number' },
+        { label: 'EBOO clearances', value: r(84), format: 'number' },
+        { label: 'Follow-ups', value: r(212), format: 'number' },
+        { label: 'Unlocked charts', value: r(9), format: 'number', lowerIsBetter: true },
+      ],
+      leaderboard: [{ name: 'Brock', metric: r(386), format: 'number' }],
+    },
+    {
+      id: 'pcc',
+      name: 'PCC · Patient Care Coordinator',
+      summary: 'POC appointments and follow-up call streams (NPS, NP f/u, general, MEAD).',
+      source: 'ECW + 8x8',
+      headcount: 1,
+      metrics: [
+        { label: 'PCC appointments', value: r(412), format: 'number' },
+        { label: 'Follow-up calls · NPS', value: r(180), format: 'number' },
+        { label: 'Follow-up calls · NP f/u', value: r(150), format: 'number' },
+        { label: 'General f/u calls', value: r(220), format: 'number' },
+        { label: 'MEAD f/u calls', value: r(64), format: 'number' },
+      ],
+      leaderboard: [{ name: 'Vee', metric: r(412), format: 'number' }],
     },
     {
       id: 'newPatient',
       name: 'New Patient Advisor · Marie',
-      summary: 'Leads, outbound calls, onboarding, waitlist, and declines.',
+      summary: 'Calls, messages, and texts — all tracked with trending over time.',
       source: '8x8 + CRM',
       headcount: 1,
       metrics: [
+        { label: 'Calls', value: r(1_180), format: 'number' },
+        { label: 'Messages', value: r(940), format: 'number' },
+        { label: 'Texts', value: r(1_460), format: 'number' },
         { label: 'Leads', value: r(420), format: 'number' },
-        { label: 'Outbound calls', value: r(1_180), format: 'number' },
         { label: 'Onboarded', value: r(132), format: 'number' },
         { label: 'On waitlist', value: r(58), format: 'number' },
-        { label: 'Declined', value: r(44), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [{ name: 'Marie', metric: r(132), format: 'number' }],
     },
     {
-      id: 'frontDesk',
-      name: 'Front Desk · Jazzmine',
-      summary: 'Patient collections (copays/deductibles), cash sales, and calls.',
-      source: 'ECW + 8x8',
+      id: 'patientGuide',
+      name: 'Patient Guide',
+      summary: 'Patient outreach calls and case management.',
+      source: '8x8 + ECW',
       headcount: 1,
       metrics: [
-        { label: 'Patient insurance collection', value: r(38_600), format: 'currency', target: r(42_000) },
+        { label: 'Outbound calls', value: r(680), format: 'number' },
+        { label: 'Inbound calls', value: r(540), format: 'number' },
+        { label: 'Patient cases', value: r(212), format: 'number' },
+      ],
+      leaderboard: [{ name: 'Patient Guide', metric: r(680), format: 'number' }],
+    },
+    {
+      id: 'frontDesk',
+      name: 'Front Desk',
+      summary: 'Cash sales, copays/deductibles, and call handling.',
+      source: 'ECW + 8x8',
+      headcount: 3,
+      metrics: [
         { label: 'Cash service sales', value: r(42_700), format: 'currency', target: r(45_000) },
+        { label: 'Copays & deductibles', value: r(18_300), format: 'currency' },
         { label: 'Inbound calls', value: r(2_140), format: 'number' },
         { label: 'Calls answered', value: r(1_840), format: 'number' },
+        { label: 'Missed calls', value: r(300), format: 'number', lowerIsBetter: true },
+        { label: 'Voicemails', value: r(180), format: 'number' },
         { label: '% inbound answered', value: 86, format: 'percent', target: 90 },
         { label: 'Avg call duration', value: 4.2, format: 'minutes' },
-        { label: 'Outbound calls', value: r(960), format: 'number', target: r(1_200) },
       ],
-      leaderboard: [{ name: 'Jazzmine', metric: r(38_600), format: 'currency' }],
+      leaderboard: [
+        { name: 'Yazmin', metric: r(24_100), format: 'currency' },
+        { name: 'Haylee', metric: r(18_600), format: 'currency' },
+      ],
     },
     {
       id: 'ma',
       name: 'Medical Assistants',
-      summary: 'Vitals, procedures, EBOO/IV delivery, stars, misses, and SMS.',
-      source: 'ECW + 8x8',
-      headcount: 3,
+      summary: 'Vitals, procedures, prescription refills, messages, and care plans.',
+      source: 'ECW',
+      headcount: 2,
       metrics: [
         { label: 'Vitals taken', value: r(2_310), format: 'number' },
         { label: 'Procedures', value: r(1_480), format: 'number' },
-        { label: 'EBOO booked', value: r(212), format: 'number' },
-        { label: 'IVs administered', value: r(1_540), format: 'number' },
-        { label: 'Stars', value: r(1_620), format: 'number' },
-        { label: 'Misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
-        { label: 'Cost of misses', value: r(74) * 3.2, format: 'currency', lowerIsBetter: true },
-        { label: 'SMS received', value: r(1_280), format: 'number' },
+        { label: 'Prescription refills', value: r(640), format: 'number' },
+        { label: 'Patient messages', value: r(1_120), format: 'number' },
+        { label: 'Plan of care releases', value: r(420), format: 'number' },
+        { label: 'Extension calls', value: r(560), format: 'number' },
       ],
       leaderboard: [
-        { name: 'Charlenne (Remote)', metric: r(540), format: 'number' },
-        { name: 'Brooke', metric: r(498), format: 'number' },
-        { name: 'Heyli', metric: r(442), format: 'number' },
+        { name: 'Charlene (Virtual)', metric: r(540), format: 'number' },
+        { name: 'Wesley', metric: r(498), format: 'number' },
       ],
     },
     {
-      id: 'rcm',
-      name: 'RCM / Billing',
-      summary: 'Claims submission, denials, patient collections, and A/R.',
-      source: 'ECW Billing',
-      headcount: 2,
+      id: 'medic',
+      name: 'Medics',
+      summary: 'Starts, misses, IVs administered & booked, and unlocked notes.',
+      source: 'ECW',
+      headcount: 3,
       metrics: [
-        { label: 'Claims submitted', value: r(782), format: 'number' },
-        { label: 'Avg days to submit', value: 1.8, format: 'days', lowerIsBetter: true },
-        { label: 'Denial rate', value: 11, format: 'percent', lowerIsBetter: true, target: 8 },
-        { label: 'Patient collections', value: r(38_600), format: 'currency' },
-        { label: 'Claims resubmitted', value: r(64), format: 'number', lowerIsBetter: true },
-        { label: 'Outstanding A/R', value: 412_900, format: 'currency', lowerIsBetter: true },
+        { label: 'IV starts', value: r(1_620), format: 'number' },
+        { label: 'IV misses', value: r(74), format: 'number', lowerIsBetter: true, target: r(50) },
+        { label: 'Cost of misses', value: r(74) * 3.2, format: 'currency', lowerIsBetter: true },
+        { label: 'IVs administered', value: r(1_540), format: 'number' },
+        { label: 'IVs booked', value: r(1_720), format: 'number' },
+        { label: 'Unlocked notes', value: r(21), format: 'number', lowerIsBetter: true },
       ],
       leaderboard: [
-        { name: 'Karina', metric: r(420), format: 'number' },
-        { name: 'Bea', metric: r(362), format: 'number' },
+        { name: 'Bea', metric: r(1_540), format: 'number' },
+        { name: 'Juan', metric: r(1_280), format: 'number' },
+        { name: 'Nate', metric: r(1_090), format: 'number' },
       ],
+    },
+    {
+      id: 'nurse',
+      name: 'Nurses · Nick',
+      summary: 'EBOOs, ratio, upsells, port access/deaccess, and supplies.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'EBOOs performed', value: r(188), format: 'number' },
+        { label: 'EBOO booked', value: r(212), format: 'number' },
+        { label: 'Ratio', value: 3, format: 'number' },
+        { label: 'Upsells ($ vol.)', value: r(12_400), format: 'currency' },
+        { label: 'Port access / deaccess', value: r(86), format: 'number' },
+        { label: '# of supplies', value: r(640), format: 'number' },
+      ],
+      leaderboard: [{ name: 'Nick', metric: r(188), format: 'number' }],
+    },
+    {
+      id: 'technician',
+      name: 'Technician · Kyle',
+      summary: 'Laser & diagnostics appointments, BioCharger, and chart timeliness.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'Laser appointments', value: r(186), format: 'number' },
+        { label: 'Locked laser notes', value: r(8), format: 'number', lowerIsBetter: true },
+        { label: 'Diagnostics appointments', value: r(248), format: 'number' },
+        { label: 'Same-day results uploaded', value: 94, format: 'percent', target: 100 },
+        { label: 'BioCharger sessions', value: r(96), format: 'number' },
+        { label: 'Locked BioCharger notes', value: r(5), format: 'number', lowerIsBetter: true },
+      ],
+      leaderboard: [{ name: 'Kyle', metric: r(186), format: 'number' }],
+    },
+    {
+      id: 'labs',
+      name: 'Lab Draws',
+      summary: 'Draws by lab (Quest, MDL), kits, and processing time by staff.',
+      source: 'ECW + Lab portals',
+      headcount: 0,
+      metrics: [
+        { label: 'Quest draws', value: r(180), format: 'number' },
+        { label: 'MDL draws', value: r(96), format: 'number' },
+        { label: 'MDL kits', value: r(64), format: 'number' },
+        { label: 'Processed by Kyle', value: r(210), format: 'number' },
+        { label: 'Processed by Bea', value: r(140), format: 'number' },
+        { label: 'Total time spent by Kyle (hrs)', value: r(38), format: 'number' },
+        { label: 'Total time spent by Bea (hrs)', value: r(26), format: 'number' },
+      ],
+      leaderboard: [
+        { name: 'Kyle', metric: r(210), format: 'number' },
+        { name: 'Bea', metric: r(140), format: 'number' },
+      ],
+    },
+    {
+      id: 'billing',
+      name: 'Billing',
+      summary: 'VOBs, collections, claims, denials, appeals, disputes, and write-offs.',
+      source: 'ECW Billing',
+      headcount: 3,
+      metrics: [
+        { label: 'Insurance collections', value: r(98_400), format: 'currency', target: r(110_000) },
+        { label: 'VOBs completed', value: r(286), format: 'number' },
+        { label: 'Pending claims', value: r(12), format: 'number', lowerIsBetter: true },
+        { label: 'Avg days to submit claim', value: 1.8, format: 'days', lowerIsBetter: true },
+        { label: 'Claims denied', value: r(86), format: 'number', lowerIsBetter: true },
+        { label: 'Denial rate', value: 11, format: 'percent', lowerIsBetter: true, target: 8 },
+        { label: 'Appeals sent', value: r(41), format: 'number' },
+        { label: 'Unique claims appealed', value: r(34), format: 'number' },
+        { label: 'Open disputes', value: r(12), format: 'number', lowerIsBetter: true },
+        { label: 'Write-offs', value: r(14_200), format: 'currency', lowerIsBetter: true },
+        { label: 'Claims paid', value: r(612), format: 'number' },
+      ],
+      leaderboard: [
+        { name: 'Vignesh', metric: r(420), format: 'number' },
+        { name: 'Kamalesh', metric: r(362), format: 'number' },
+        { name: 'Bhavya', metric: r(298), format: 'number' },
+      ],
+    },
+    {
+      id: 'ops',
+      name: 'Operations Manager · Karina',
+      summary: 'Provider scheduling, patient retention, and team productivity.',
+      source: 'ECW',
+      headcount: 1,
+      metrics: [
+        { label: 'Avg days of appts per provider', value: 6.2, format: 'days' },
+        { label: 'Active patients w/o next appt', value: r(214), format: 'number', lowerIsBetter: true },
+        { label: 'Revenue per employee', value: r(23_300), format: 'currency' },
+        { label: 'Days to next patient visit (new)', value: 4.6, format: 'days', lowerIsBetter: true },
+      ],
+      leaderboard: [{ name: 'Karina', metric: 84, format: 'percent' }],
     },
     {
       id: 'admin',
-      name: 'Office Manager · Shibani',
-      summary: 'Scheduling, occupancy, no-shows, and team oversight.',
-      source: 'ECW',
+      name: 'Admin · Shibani',
+      summary: 'Can edit company info, Employees, and Roles. Scheduling oversight.',
+      source: 'Admin portal',
       headcount: 1,
       metrics: [
         { label: 'Schedule fill rate', value: 84, format: 'percent', target: 85 },
         { label: 'Unit occupancy', value: 82, format: 'percent', target: 80 },
         { label: 'No-shows', value: r(96), format: 'number', lowerIsBetter: true },
-        { label: 'Staff on shift', value: 8, format: 'number' },
+        { label: 'Company goals tracked', value: 7, format: 'number' },
       ],
       leaderboard: [{ name: 'Shibani', metric: 84, format: 'percent' }],
     },
@@ -415,7 +580,6 @@ export function getRoles(scale: number): Role[] {
 // PATIENT JOURNEY — individual patient detail / lifecycle stage
 // -----------------------------------------------------------------------------
 
-// The lifecycle every patient moves through.
 export const PATIENT_STAGES = [
   'Lead',
   'Contacted',
@@ -426,93 +590,20 @@ export const PATIENT_STAGES = [
 ] as const
 
 const PATIENTS: PatientRecord[] = [
-  {
-    id: 'p1', name: 'Olivia Bennett', stageIndex: 5, status: 'active', modality: 'IV Therapy',
-    coordinator: 'Marie', source: 'Referral', createdAt: '2026-02-10',
-    nextAppt: '2026-06-09', revenue: 3_420, phone: '(305) 555-0142', email: 'olivia.b@example.com',
-    stageDates: ['2026-02-10', '2026-02-11', '2026-02-14', '2026-02-18', '2026-02-25', '2026-03-12'],
-  },
-  {
-    id: 'p2', name: 'Marcus Hale', stageIndex: 4, status: 'on-track', modality: 'EBOO',
-    coordinator: 'Marie', source: 'EBOO landing page', createdAt: '2026-05-20',
-    nextAppt: '2026-06-06', revenue: 1_850, phone: '(305) 555-0188', email: 'm.hale@example.com',
-    stageDates: ['2026-05-20', '2026-05-21', '2026-05-26', '2026-05-30', '2026-06-02', undefined],
-  },
-  {
-    id: 'p3', name: 'Sophia Nguyen', stageIndex: 3, status: 'on-track', modality: 'Neuromuscular Therapy',
-    coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-28',
-    nextAppt: '2026-06-05', revenue: 420, phone: '(305) 555-0123', email: 's.nguyen@example.com',
-    stageDates: ['2026-05-28', '2026-05-29', '2026-06-01', '2026-06-03', undefined, undefined],
-  },
-  {
-    id: 'p4', name: 'James Carter', stageIndex: 2, status: 'on-track', modality: 'Erchonia Laser Therapy',
-    coordinator: 'Marie', source: 'Referral', createdAt: '2026-06-01',
-    nextAppt: undefined, revenue: 0, phone: '(305) 555-0177', email: 'jcarter@example.com',
-    stageDates: ['2026-06-01', '2026-06-02', '2026-06-03', undefined, undefined, undefined],
-  },
-  {
-    id: 'p5', name: 'Emma Rodriguez', stageIndex: 1, status: 'on-track', modality: 'BEMER Therapy',
-    coordinator: 'Marie', source: 'Instagram', createdAt: '2026-06-02',
-    nextAppt: undefined, revenue: 0, phone: '(305) 555-0119', email: 'emma.r@example.com',
-    stageDates: ['2026-06-02', '2026-06-03', undefined, undefined, undefined, undefined],
-  },
-  {
-    id: 'p6', name: 'Liam Foster', stageIndex: 0, status: 'on-track', modality: 'IV Therapy',
-    coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-06-04',
-    nextAppt: undefined, revenue: 0, phone: '(305) 555-0160', email: 'liam.f@example.com',
-    stageDates: ['2026-06-04', undefined, undefined, undefined, undefined, undefined],
-  },
-  {
-    id: 'p7', name: 'Ava Mitchell', stageIndex: 2, status: 'waitlist', modality: 'EBOO',
-    coordinator: 'Marie', source: 'EBOO landing page', createdAt: '2026-05-25',
-    nextAppt: undefined, revenue: 0, phone: '(305) 555-0101', email: 'ava.m@example.com',
-    stageDates: ['2026-05-25', '2026-05-27', '2026-05-31', undefined, undefined, undefined],
-  },
-  {
-    id: 'p8', name: 'Noah Pearson', stageIndex: 1, status: 'declined', modality: 'Neuromuscular Therapy',
-    coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-22',
-    nextAppt: undefined, revenue: 0, phone: '(305) 555-0134', email: 'noah.p@example.com',
-    stageDates: ['2026-05-22', '2026-05-24', undefined, undefined, undefined, undefined],
-    declineReason: 'Cost — chose not to proceed after pricing',
-  },
-  {
-    id: 'p9', name: 'Isabella Reed', stageIndex: 5, status: 'active', modality: 'IV Therapy',
-    coordinator: 'Marie', source: 'Referral', createdAt: '2026-01-15',
-    nextAppt: '2026-06-07', revenue: 5_120, phone: '(305) 555-0155', email: 'bella.r@example.com',
-    stageDates: ['2026-01-15', '2026-01-16', '2026-01-19', '2026-01-23', '2026-01-30', '2026-02-14'],
-  },
-  {
-    id: 'p10', name: 'Ethan Brooks', stageIndex: 4, status: 'on-track', modality: 'Erchonia Laser Therapy',
-    coordinator: 'Marie', source: 'Instagram', createdAt: '2026-05-18',
-    nextAppt: '2026-06-10', revenue: 980, phone: '(305) 555-0166', email: 'ethan.b@example.com',
-    stageDates: ['2026-05-18', '2026-05-19', '2026-05-23', '2026-05-27', '2026-06-01', undefined],
-  },
-  {
-    id: 'p11', name: 'Mia Coleman', stageIndex: 3, status: 'on-track', modality: 'BEMER Therapy',
-    coordinator: 'Marie', source: 'Referral', createdAt: '2026-05-30',
-    nextAppt: '2026-06-08', revenue: 260, phone: '(305) 555-0111', email: 'mia.c@example.com',
-    stageDates: ['2026-05-30', '2026-05-31', '2026-06-02', '2026-06-04', undefined, undefined],
-  },
-  {
-    id: 'p12', name: 'Lucas Ward', stageIndex: 0, status: 'on-track', modality: 'EBOO',
-    coordinator: 'Marie', source: 'EBOO landing page', createdAt: '2026-06-03',
-    nextAppt: undefined, revenue: 0, phone: '(305) 555-0148', email: 'lucas.w@example.com',
-    stageDates: ['2026-06-03', undefined, undefined, undefined, undefined, undefined],
-  },
-  {
-    id: 'p13', name: 'Grace Sullivan', stageIndex: 2, status: 'declined', modality: 'IV Therapy',
-    coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-19',
-    nextAppt: undefined, revenue: 0, phone: '(305) 555-0172', email: 'grace.s@example.com',
-    stageDates: ['2026-05-19', '2026-05-20', '2026-05-23', undefined, undefined, undefined],
-    declineReason: 'Insurance not accepted (out-of-network)',
-  },
-  {
-    id: 'p14', name: 'Henry Diaz', stageIndex: 1, status: 'declined', modality: 'Erchonia Laser Therapy',
-    coordinator: 'Marie', source: 'Instagram', createdAt: '2026-05-21',
-    nextAppt: undefined, revenue: 0, phone: '(305) 555-0193', email: 'henry.d@example.com',
-    stageDates: ['2026-05-21', '2026-05-23', undefined, undefined, undefined, undefined],
-    declineReason: 'Unresponsive after 3 outreach attempts',
-  },
+  { id: 'p1', name: 'Olivia Bennett', stageIndex: 5, status: 'active', modality: 'IV Therapy', coordinator: 'Marie', source: 'Referral', createdAt: '2026-02-10', nextAppt: '2026-06-09', revenue: 3_420, phone: '(305) 555-0142', email: 'olivia.b@example.com', stageDates: ['2026-02-10', '2026-02-11', '2026-02-14', '2026-02-18', '2026-02-25', '2026-03-12'] },
+  { id: 'p2', name: 'Marcus Hale', stageIndex: 4, status: 'on-track', modality: 'EBOO', coordinator: 'Marie', source: 'EBOO landing page', createdAt: '2026-05-20', nextAppt: '2026-06-06', revenue: 1_850, phone: '(305) 555-0188', email: 'm.hale@example.com', stageDates: ['2026-05-20', '2026-05-21', '2026-05-26', '2026-05-30', '2026-06-02', undefined] },
+  { id: 'p3', name: 'Sophia Nguyen', stageIndex: 3, status: 'on-track', modality: 'Chiro', coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-28', nextAppt: '2026-06-05', revenue: 420, phone: '(305) 555-0123', email: 's.nguyen@example.com', stageDates: ['2026-05-28', '2026-05-29', '2026-06-01', '2026-06-03', undefined, undefined] },
+  { id: 'p4', name: 'James Carter', stageIndex: 2, status: 'on-track', modality: 'Erchonia Laser Therapy', coordinator: 'Marie', source: 'Referral', createdAt: '2026-06-01', nextAppt: undefined, revenue: 0, phone: '(305) 555-0177', email: 'jcarter@example.com', stageDates: ['2026-06-01', '2026-06-02', '2026-06-03', undefined, undefined, undefined] },
+  { id: 'p5', name: 'Emma Rodriguez', stageIndex: 1, status: 'on-track', modality: 'BEMER Therapy', coordinator: 'Marie', source: 'Instagram', createdAt: '2026-06-02', nextAppt: undefined, revenue: 0, phone: '(305) 555-0119', email: 'emma.r@example.com', stageDates: ['2026-06-02', '2026-06-03', undefined, undefined, undefined, undefined] },
+  { id: 'p6', name: 'Liam Foster', stageIndex: 0, status: 'on-track', modality: 'IV Therapy', coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-06-04', nextAppt: undefined, revenue: 0, phone: '(305) 555-0160', email: 'liam.f@example.com', stageDates: ['2026-06-04', undefined, undefined, undefined, undefined, undefined] },
+  { id: 'p7', name: 'Ava Mitchell', stageIndex: 2, status: 'waitlist', modality: 'EBOO', coordinator: 'Marie', source: 'EBOO landing page', createdAt: '2026-05-25', nextAppt: undefined, revenue: 0, phone: '(305) 555-0101', email: 'ava.m@example.com', stageDates: ['2026-05-25', '2026-05-27', '2026-05-31', undefined, undefined, undefined] },
+  { id: 'p8', name: 'Noah Pearson', stageIndex: 1, status: 'declined', modality: 'Chiro', coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-22', nextAppt: undefined, revenue: 0, phone: '(305) 555-0134', email: 'noah.p@example.com', stageDates: ['2026-05-22', '2026-05-24', undefined, undefined, undefined, undefined], declineReason: 'Cost — chose not to proceed after pricing' },
+  { id: 'p9', name: 'Isabella Reed', stageIndex: 5, status: 'active', modality: 'IV Therapy', coordinator: 'Marie', source: 'Referral', createdAt: '2026-01-15', nextAppt: '2026-06-07', revenue: 5_120, phone: '(305) 555-0155', email: 'bella.r@example.com', stageDates: ['2026-01-15', '2026-01-16', '2026-01-19', '2026-01-23', '2026-01-30', '2026-02-14'] },
+  { id: 'p10', name: 'Ethan Brooks', stageIndex: 4, status: 'on-track', modality: 'Erchonia Laser Therapy', coordinator: 'Marie', source: 'Instagram', createdAt: '2026-05-18', nextAppt: '2026-06-10', revenue: 980, phone: '(305) 555-0166', email: 'ethan.b@example.com', stageDates: ['2026-05-18', '2026-05-19', '2026-05-23', '2026-05-27', '2026-06-01', undefined] },
+  { id: 'p11', name: 'Mia Coleman', stageIndex: 3, status: 'on-track', modality: 'BEMER Therapy', coordinator: 'Marie', source: 'Referral', createdAt: '2026-05-30', nextAppt: '2026-06-08', revenue: 260, phone: '(305) 555-0111', email: 'mia.c@example.com', stageDates: ['2026-05-30', '2026-05-31', '2026-06-02', '2026-06-04', undefined, undefined] },
+  { id: 'p12', name: 'Lucas Ward', stageIndex: 0, status: 'on-track', modality: 'EBOO', coordinator: 'Marie', source: 'EBOO landing page', createdAt: '2026-06-03', nextAppt: undefined, revenue: 0, phone: '(305) 555-0148', email: 'lucas.w@example.com', stageDates: ['2026-06-03', undefined, undefined, undefined, undefined, undefined] },
+  { id: 'p13', name: 'Grace Sullivan', stageIndex: 2, status: 'declined', modality: 'IV Therapy', coordinator: 'Marie', source: 'Ad spend', createdAt: '2026-05-19', nextAppt: undefined, revenue: 0, phone: '(305) 555-0172', email: 'grace.s@example.com', stageDates: ['2026-05-19', '2026-05-20', '2026-05-23', undefined, undefined, undefined], declineReason: 'Insurance not accepted (out-of-network)' },
+  { id: 'p14', name: 'Henry Diaz', stageIndex: 1, status: 'declined', modality: 'Erchonia Laser Therapy', coordinator: 'Marie', source: 'Instagram', createdAt: '2026-05-21', nextAppt: undefined, revenue: 0, phone: '(305) 555-0193', email: 'henry.d@example.com', stageDates: ['2026-05-21', '2026-05-23', undefined, undefined, undefined, undefined], declineReason: 'Unresponsive after 3 outreach attempts' },
 ]
 
 export function getPatients(): PatientRecord[] {
@@ -535,9 +626,9 @@ export function getNewPatientTeam() {
 export function getNewPatientPipeline(scale: number) {
   const r = (n: number) => Math.round(n * scale)
   return [
-    { status: 'New / pending', count: r(86), tone: 'brand' as const },
+    { status: 'Leads', count: r(86), tone: 'brand' as const },
     { status: 'Onboarded', count: r(132), tone: 'green' as const },
-    { status: 'Waitlist', count: r(58), tone: 'amber' as const },
+    { status: 'Waitlisted', count: r(58), tone: 'amber' as const },
     { status: 'Declined', count: r(44), tone: 'red' as const },
   ]
 }
@@ -556,73 +647,119 @@ interface EmployeeSeed {
 }
 
 const EMPLOYEE_SEEDS: EmployeeSeed[] = [
-  // Provider
   { id: 'e1', name: 'Dr. Drannikov', role: 'Provider', roleId: 'provider', utilizationPct: 96, revenue: 96_400, metrics: [
-    { label: 'Patients seen', value: 540, format: 'number' },
-    { label: 'EBOOs performed', value: 188, format: 'number' },
-    { label: 'Procedures', value: 420, format: 'number' },
-    { label: 'IVs supervised', value: 1_540, format: 'number' },
+    { label: 'Total appointments', value: 540, format: 'number' },
+    { label: 'Hormone replacement therapy', value: 58, format: 'number' },
+    { label: 'PRP procedures', value: 34, format: 'number' },
+    { label: 'Unlocked charts', value: 14, format: 'number', lowerIsBetter: true },
   ] },
-  // New Patient Advisor
-  { id: 'e2', name: 'Marie', role: 'New Patient Advisor', roleId: 'newPatient', utilizationPct: 92, revenue: 24_000, metrics: [
-    { label: 'Leads', value: 420, format: 'number' },
-    { label: 'Outbound calls', value: 1_180, format: 'number' },
+  { id: 'e2', name: 'Dr. Bakman', role: 'Provider', roleId: 'bakman', utilizationPct: 94, revenue: 71_200, metrics: [
+    { label: 'FPE appts (excl. Medicare)', value: 72, format: 'number' },
+    { label: 'Medicare FPE appts', value: 38, format: 'number' },
+    { label: 'Calls to patients', value: 140, format: 'number' },
+    { label: 'Unlocked charts', value: 11, format: 'number', lowerIsBetter: true },
+  ] },
+  { id: 'e3', name: 'Brock', role: 'Physician Associate', roleId: 'pa', utilizationPct: 91, revenue: 58_200, metrics: [
+    { label: 'Patients seen', value: 386, format: 'number' },
+    { label: 'Procedures', value: 248, format: 'number' },
+    { label: 'EBOO clearances', value: 84, format: 'number' },
+    { label: 'Unlocked charts', value: 9, format: 'number', lowerIsBetter: true },
+  ] },
+  { id: 'e4', name: 'Marie', role: 'New Patient Advisor', roleId: 'newPatient', utilizationPct: 92, revenue: 24_000, metrics: [
+    { label: 'Calls', value: 1_180, format: 'number' },
+    { label: 'Messages', value: 940, format: 'number' },
+    { label: 'Texts', value: 1_460, format: 'number' },
     { label: 'Onboarded', value: 132, format: 'number' },
-    { label: 'On waitlist', value: 58, format: 'number' },
   ] },
-  // Front Desk
-  { id: 'e3', name: 'Jazzmine', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 94, revenue: 38_600, metrics: [
-    { label: 'Patient collection', value: 38_600, format: 'currency' },
-    { label: 'Inbound calls', value: 2_140, format: 'number' },
-    { label: 'Calls answered', value: 1_840, format: 'number' },
-    { label: '% answered', value: 86, format: 'percent' },
-    { label: 'Avg call duration', value: 4.2, format: 'minutes' },
-    { label: 'Outbound calls', value: 960, format: 'number' },
+  { id: 'e5', name: 'Vee', role: 'PCC', roleId: 'pcc', utilizationPct: 90, revenue: 18_900, metrics: [
+    { label: 'PCC appointments', value: 412, format: 'number' },
+    { label: 'Follow-up calls · NPS', value: 180, format: 'number' },
+    { label: 'NP f/u calls', value: 150, format: 'number' },
+    { label: 'MEAD f/u calls', value: 64, format: 'number' },
   ] },
-  // Medical Assistants
-  { id: 'e4', name: 'Charlenne (Remote)', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 91, revenue: 14_200, metrics: [
-    { label: 'Vitals taken', value: 820, format: 'number' },
-    { label: 'Procedures', value: 540, format: 'number' },
-    { label: 'EBOO booked', value: 78, format: 'number' },
-    { label: 'IVs administered', value: 560, format: 'number' },
-    { label: 'Stars', value: 580, format: 'number' },
-    { label: 'Misses', value: 24, format: 'number', lowerIsBetter: true },
+  { id: 'e6', name: 'Yazmin', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 94, revenue: 24_100, metrics: [
+    { label: 'Cash sales', value: 24_100, format: 'currency' },
+    { label: 'Inbound calls', value: 1_180, format: 'number' },
+    { label: 'Missed calls', value: 160, format: 'number', lowerIsBetter: true },
+    { label: 'Voicemails', value: 96, format: 'number' },
   ] },
-  { id: 'e5', name: 'Brooke', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 88, revenue: 12_800, metrics: [
-    { label: 'Vitals taken', value: 760, format: 'number' },
-    { label: 'Procedures', value: 498, format: 'number' },
-    { label: 'EBOO booked', value: 70, format: 'number' },
-    { label: 'IVs administered', value: 520, format: 'number' },
-    { label: 'Stars', value: 540, format: 'number' },
-    { label: 'Misses', value: 26, format: 'number', lowerIsBetter: true },
+  { id: 'e7', name: 'Haylee', role: 'Front Desk', roleId: 'frontDesk', utilizationPct: 86, revenue: 18_600, metrics: [
+    { label: 'Cash sales', value: 18_600, format: 'currency' },
+    { label: 'Inbound calls', value: 960, format: 'number' },
+    { label: 'Missed calls', value: 140, format: 'number', lowerIsBetter: true },
+    { label: 'Voicemails', value: 84, format: 'number' },
   ] },
-  { id: 'e6', name: 'Heyli', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 84, revenue: 11_100, metrics: [
-    { label: 'Vitals taken', value: 730, format: 'number' },
-    { label: 'Procedures', value: 442, format: 'number' },
-    { label: 'EBOO booked', value: 64, format: 'number' },
-    { label: 'IVs administered', value: 460, format: 'number' },
-    { label: 'Stars', value: 500, format: 'number' },
-    { label: 'Misses', value: 28, format: 'number', lowerIsBetter: true },
+  { id: 'e8', name: 'Charlene (Virtual)', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 91, revenue: 14_200, metrics: [
+    { label: 'Vitals taken', value: 1_240, format: 'number' },
+    { label: 'Procedures', value: 780, format: 'number' },
+    { label: 'Patient messages', value: 590, format: 'number' },
+    { label: 'Plan of care releases', value: 220, format: 'number' },
   ] },
-  // RCM / Billing
-  { id: 'e7', name: 'Karina', role: 'RCM / Billing', roleId: 'rcm', utilizationPct: 93, revenue: 21_400, metrics: [
-    { label: 'Claims submitted', value: 420, format: 'number' },
-    { label: 'Avg days to submit', value: 1.6, format: 'days', lowerIsBetter: true },
-    { label: 'Denial rate', value: 9, format: 'percent', lowerIsBetter: true },
-    { label: 'Patient collections', value: 21_400, format: 'currency' },
+  { id: 'e9', name: 'Wesley', role: 'Medical Assistant', roleId: 'ma', utilizationPct: 88, revenue: 12_800, metrics: [
+    { label: 'Vitals taken', value: 1_070, format: 'number' },
+    { label: 'Procedures', value: 700, format: 'number' },
+    { label: 'Patient messages', value: 530, format: 'number' },
+    { label: 'Extension calls', value: 300, format: 'number' },
   ] },
-  { id: 'e8', name: 'Bea', role: 'RCM / Billing', roleId: 'rcm', utilizationPct: 86, revenue: 17_200, metrics: [
-    { label: 'Claims submitted', value: 362, format: 'number' },
-    { label: 'Avg days to submit', value: 2.0, format: 'days', lowerIsBetter: true },
-    { label: 'Denial rate', value: 12, format: 'percent', lowerIsBetter: true },
-    { label: 'Patient collections', value: 17_200, format: 'currency' },
+  { id: 'e10', name: 'Bea', role: 'Medic', roleId: 'medic', utilizationPct: 93, revenue: 30_400, metrics: [
+    { label: 'IV starts', value: 1_620, format: 'number' },
+    { label: 'IV misses', value: 74, format: 'number', lowerIsBetter: true },
+    { label: 'Cost of misses', value: 237, format: 'currency', lowerIsBetter: true },
+    { label: 'IVs administered', value: 1_540, format: 'number' },
+    { label: 'IVs booked', value: 1_720, format: 'number' },
+    { label: 'Unlocked notes', value: 21, format: 'number', lowerIsBetter: true },
   ] },
-  // Office Manager
-  { id: 'e9', name: 'Shibani', role: 'Office Manager', roleId: 'admin', utilizationPct: 90, revenue: 0, metrics: [
+  { id: 'e11', name: 'Juan', role: 'Medic', roleId: 'medic', utilizationPct: 87, revenue: 24_100, metrics: [
+    { label: 'IV starts', value: 1_280, format: 'number' },
+    { label: 'IV misses', value: 62, format: 'number', lowerIsBetter: true },
+    { label: 'IVs administered', value: 1_180, format: 'number' },
+    { label: 'Unlocked notes', value: 18, format: 'number', lowerIsBetter: true },
+  ] },
+  { id: 'e12', name: 'Nate', role: 'Medic', roleId: 'medic', utilizationPct: 82, revenue: 20_900, metrics: [
+    { label: 'IV starts', value: 1_090, format: 'number' },
+    { label: 'IV misses', value: 58, format: 'number', lowerIsBetter: true },
+    { label: 'IVs administered', value: 980, format: 'number' },
+    { label: 'Unlocked notes', value: 24, format: 'number', lowerIsBetter: true },
+  ] },
+  { id: 'e13', name: 'Nick', role: 'Nurse', roleId: 'nurse', utilizationPct: 95, revenue: 41_600, metrics: [
+    { label: 'EBOOs performed', value: 188, format: 'number' },
+    { label: 'Upsells ($ vol.)', value: 12_400, format: 'currency' },
+    { label: 'Port access / deaccess', value: 86, format: 'number' },
+    { label: '# of supplies', value: 640, format: 'number' },
+  ] },
+  { id: 'e14', name: 'Kyle', role: 'Technician', roleId: 'technician', utilizationPct: 89, revenue: 18_400, metrics: [
+    { label: 'Laser appointments', value: 186, format: 'number' },
+    { label: 'Locked laser notes', value: 8, format: 'number', lowerIsBetter: true },
+    { label: 'Diagnostics appointments', value: 248, format: 'number' },
+    { label: 'BioCharger sessions', value: 96, format: 'number' },
+  ] },
+  { id: 'e15', name: 'Vignesh', role: 'Billing', roleId: 'billing', utilizationPct: 93, revenue: 52_300, metrics: [
+    { label: 'Insurance collections', value: 52_300, format: 'currency' },
+    { label: 'VOBs completed', value: 120, format: 'number' },
+    { label: 'Appeals sent', value: 18, format: 'number' },
+    { label: 'Write-offs', value: 5_400, format: 'currency', lowerIsBetter: true },
+  ] },
+  { id: 'e16', name: 'Kamalesh', role: 'Billing', roleId: 'billing', utilizationPct: 88, revenue: 46_100, metrics: [
+    { label: 'Insurance collections', value: 46_100, format: 'currency' },
+    { label: 'VOBs completed', value: 98, format: 'number' },
+    { label: 'Appeals sent', value: 16, format: 'number' },
+    { label: 'Write-offs', value: 4_900, format: 'currency', lowerIsBetter: true },
+  ] },
+  { id: 'e17', name: 'Bhavya', role: 'Billing', roleId: 'billing', utilizationPct: 85, revenue: 38_400, metrics: [
+    { label: 'Insurance collections', value: 38_400, format: 'currency' },
+    { label: 'VOBs completed', value: 68, format: 'number' },
+    { label: 'Appeals sent', value: 7, format: 'number' },
+    { label: 'Open disputes', value: 5, format: 'number', lowerIsBetter: true },
+  ] },
+  { id: 'e18', name: 'Karina', role: 'Operations Manager', roleId: 'ops', utilizationPct: 90, revenue: 0, metrics: [
+    { label: 'Avg days of appts / provider', value: 6.2, format: 'days' },
+    { label: 'Active pts w/o next appt', value: 214, format: 'number', lowerIsBetter: true },
+    { label: 'Revenue per employee', value: 23_300, format: 'currency' },
+  ] },
+  { id: 'e19', name: 'Shibani', role: 'Admin', roleId: 'admin', utilizationPct: 90, revenue: 0, metrics: [
     { label: 'Schedule fill rate', value: 84, format: 'percent' },
     { label: 'Unit occupancy', value: 82, format: 'percent' },
     { label: 'No-shows', value: 96, format: 'number', lowerIsBetter: true },
-    { label: 'Staff on shift', value: 8, format: 'number' },
   ] },
 ]
 
@@ -778,12 +915,15 @@ export function getEmployeesToday(): TodayEmployee[] {
   // Who's on shift today (a realistic subset of the roster).
   const shift: Record<string, { patients: number; revenue: number; target: number }> = {
     e1: { patients: 18, revenue: 4_800, target: 4_500 }, // Dr. Drannikov
-    e2: { patients: 9, revenue: 1_900, target: 2_000 }, // Marie
-    e3: { patients: 24, revenue: 2_100, target: 2_400 }, // Jazzmine
-    e4: { patients: 12, revenue: 980, target: 900 }, // Charlenne
-    e5: { patients: 10, revenue: 820, target: 900 }, // Brooke
-    e6: { patients: 9, revenue: 760, target: 900 }, // Heyli
-    e7: { patients: 0, revenue: 1_480, target: 1_300 }, // Karina (RCM)
+    e2: { patients: 16, revenue: 3_600, target: 3_400 }, // Dr. Bakman
+    e3: { patients: 14, revenue: 2_900, target: 2_800 }, // Brock
+    e4: { patients: 9, revenue: 1_900, target: 2_000 }, // Marie
+    e5: { patients: 11, revenue: 1_400, target: 1_300 }, // Vee (PCC)
+    e6: { patients: 24, revenue: 2_100, target: 2_400 }, // Yazmin
+    e8: { patients: 12, revenue: 980, target: 900 }, // Charlene
+    e10: { patients: 16, revenue: 1_450, target: 1_300 }, // Bea
+    e13: { patients: 7, revenue: 3_100, target: 2_800 }, // Nick
+    e14: { patients: 11, revenue: 720, target: 800 }, // Kyle
   }
   return EMPLOYEE_SEEDS.map((e) => {
     const s = shift[e.id]
@@ -864,11 +1004,11 @@ function goalBreached(g: Goal): boolean {
 // -----------------------------------------------------------------------------
 // ALERTS — derived from goals that are off-target
 // -----------------------------------------------------------------------------
-export function getAlerts(): Alert[] {
+export function getAlerts(goals: Goal[] = getGoals()): Alert[] {
   const fmt = (v: number, f: Goal['format']) =>
     f === 'currency' ? `$${v.toLocaleString()}` : f === 'percent' ? `${v}%` : v.toLocaleString()
 
-  const fromGoals: Alert[] = getGoals()
+  const fromGoals: Alert[] = goals
     .filter(goalBreached)
     .map((g) => {
       const gap = Math.abs(g.value - g.target)
@@ -896,13 +1036,21 @@ export function getAlerts(): Alert[] {
 // -----------------------------------------------------------------------------
 // INSURANCE / BILLING
 // -----------------------------------------------------------------------------
-export function getInsuranceKpis(): Kpi[] {
+export function getInsuranceKpis(scale: number = 1): Kpi[] {
+  const r = (n: number) => Math.round(n * scale)
   return [
-    { id: 'billed-yesterday', label: 'Billed yesterday', value: 84_200, format: 'currency', deltaPct: 6.0, trend: 'up', hint: 'Claims submitted yesterday' },
-    { id: 'claims-yesterday', label: 'Claims sent yesterday', value: 47, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Number of claims submitted' },
+    { id: 'billed', label: 'Billed', value: r(291_800), format: 'currency', deltaPct: 6.0, trend: 'up', hint: 'Claims billed in the period' },
+    { id: 'claims-sent', label: 'Claims sent', value: r(782), format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Claims submitted in the period' },
     { id: 'days-to-submit', label: 'Avg days to submit', value: 1.8, format: 'days', deltaPct: -8.0, trend: 'down', lowerIsBetter: true, hint: 'Encounter → claim sent' },
     { id: 'days-to-pay', label: 'Avg days to pay', value: 38, format: 'days', deltaPct: -3.0, trend: 'down', lowerIsBetter: true, hint: 'Weighted across payers' },
-    { id: 'denial-rate', label: 'Denial rate', value: 11, format: 'percent', deltaPct: 1.5, trend: 'up', lowerIsBetter: true, hint: '% of claims denied' },
+    { id: 'denial-rate', label: 'Total denial rate', value: 11, format: 'percent', deltaPct: 1.5, trend: 'up', lowerIsBetter: true, hint: '86 claims denied (11%)' },
+    { id: 'unlocked-claims', label: 'Unlocked claims', value: r(12), format: 'number', deltaPct: -14.0, trend: 'down', lowerIsBetter: true, hint: 'Open money until the provider closes the claim' },
+    { id: 'appeals-sent', label: 'Appeals sent in period', value: r(41), format: 'number', deltaPct: 6.0, trend: 'up', hint: 'Total appeal submissions' },
+    { id: 'claims-appealed', label: 'Unique claims appealed', value: r(34), format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Distinct claims under appeal' },
+    { id: 'vobs', label: 'VOBs completed', value: r(286), format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Verifications of benefits' },
+    { id: 'disputes', label: 'Open disputes', value: r(12), format: 'number', deltaPct: -8.0, trend: 'down', lowerIsBetter: true, hint: 'Payer disputes in progress' },
+    { id: 'write-offs', label: 'Write-offs', value: r(14_200), format: 'currency', deltaPct: 2.0, trend: 'up', lowerIsBetter: true, hint: 'Uncollectible balances written off' },
+    { id: 'claims-paid', label: 'Claims paid', value: r(612), format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Paid in full this period' },
     { id: 'outstanding-ar', label: 'Outstanding A/R', value: 412_900, format: 'currency', deltaPct: 2.0, trend: 'up', lowerIsBetter: true, hint: 'Owed by insurers (billed)' },
   ]
 }
@@ -920,11 +1068,46 @@ export function getClaimsByPayer(): PayerClaims[] {
 
 export function getDenials(): DenialCategory[] {
   return [
-    { category: 'Office visits', denials: 18, delayDays: 22 },
-    { category: 'IVs', denials: 41, delayDays: 35 },
-    { category: 'Diagnostics', denials: 27, delayDays: 28 },
-    { category: 'Procedures', denials: 33, delayDays: 44 },
-    { category: 'Labs', denials: 15, delayDays: 19 },
+    { category: 'Office visits', denials: 18 },
+    { category: 'IVs', denials: 41 },
+    { category: 'Diagnostics', denials: 27 },
+    { category: 'Procedures', denials: 33 },
+    { category: 'Labs', denials: 15 },
+  ]
+}
+
+/** Denied CPT codes — which codes are driving the denial rate (click denial rate). */
+export function getDenialsByCpt(): { cpt: string; desc: string; denials: number; rate: number }[] {
+  return [
+    { cpt: '96365', desc: 'IV infusion therapy, initial', denials: 41, rate: 18 },
+    { cpt: '20552', desc: 'Trigger point injection', denials: 14, rate: 12 },
+    { cpt: '99204', desc: 'New patient office visit', denials: 12, rate: 6 },
+    { cpt: '36415', desc: 'Venipuncture / blood draw', denials: 9, rate: 4 },
+    { cpt: '97110', desc: 'Therapeutic exercise', denials: 7, rate: 5 },
+    { cpt: '99214', desc: 'Established patient visit', denials: 3, rate: 2 },
+  ]
+}
+
+/** Write-off breakdown by reason (click write-offs). */
+export function getWriteOffDetail(): { reason: string; amount: number }[] {
+  return [
+    { reason: 'Contractual adjustment', amount: 6_400 },
+    { reason: 'Timely filing', amount: 3_100 },
+    { reason: 'Non-covered service', amount: 2_400 },
+    { reason: 'Patient bad debt', amount: 1_500 },
+    { reason: 'Small balance', amount: 800 },
+  ]
+}
+
+/** A/R aging by payer: outstanding money + open claims per age bucket. */
+export function getAgingByPayer(): AgingRow[] {
+  return [
+    { payer: 'BlueShield', claims: 96, b0_30: 22_000, b31_60: 28_000, b61_90: 31_000, b90plus: 46_000 },
+    { payer: 'Aetna', claims: 61, b0_30: 26_000, b31_60: 22_400, b61_90: 18_700, b90plus: 17_000 },
+    { payer: 'Cigna', claims: 44, b0_30: 21_300, b31_60: 17_000, b61_90: 13_000, b90plus: 11_000 },
+    { payer: 'UnitedHealthcare', claims: 58, b0_30: 24_100, b31_60: 21_000, b61_90: 19_000, b90plus: 20_000 },
+    { payer: 'Medicare', claims: 37, b0_30: 18_400, b31_60: 11_000, b61_90: 6_000, b90plus: 4_000 },
+    { payer: 'Humana', claims: 29, b0_30: 12_000, b31_60: 9_400, b61_90: 8_600, b90plus: 6_000 },
   ]
 }
 
@@ -943,13 +1126,16 @@ export function getBillingTrend(): { label: string; billed: number; collected: n
 // -----------------------------------------------------------------------------
 // MARKETING
 // -----------------------------------------------------------------------------
-export type MarketingChannelKey = 'all' | 'web' | 'instagram' | 'facebook' | 'email'
+export type MarketingChannelKey = 'all' | 'web' | 'instagram' | 'facebook' | 'x' | 'tiktok' | 'youtube' | 'email'
 
 export const MARKETING_CHANNEL_LABELS: Record<MarketingChannelKey, string> = {
   all: 'All channels',
   web: 'Web',
   instagram: 'Instagram',
   facebook: 'Facebook',
+  x: 'X',
+  tiktok: 'TikTok',
+  youtube: 'YouTube',
   email: 'Email',
 }
 
@@ -989,6 +1175,33 @@ export function getMarketingKpis(channel: MarketingChannelKey = 'all'): Kpi[] {
         { id: 'em-click', label: 'Click rate', value: 6.2, format: 'percent', deltaPct: 0.6, trend: 'up', hint: 'Avg across campaigns' },
         { id: 'em-leads', label: 'Leads', value: 215, format: 'number', deltaPct: 8.0, trend: 'up', hint: 'Attributed to email' },
       ]
+    case 'x':
+      return [
+        { id: 'x-followers', label: 'Followers', value: 8_900, format: 'number', deltaPct: 3.0, trend: 'up', hint: 'X (Twitter) audience' },
+        { id: 'x-new', label: 'New followers', value: 240, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'This period' },
+        { id: 'x-eng', label: 'Engagement rate', value: 1.8, format: 'percent', deltaPct: 0.1, trend: 'up', hint: 'Likes + reposts / impressions' },
+        { id: 'x-impr', label: 'Impressions', value: 64_000, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Total reach' },
+        { id: 'x-posts', label: 'Posts', value: 42, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Published this period' },
+        { id: 'x-leads', label: 'Leads', value: 28, format: 'number', deltaPct: 6.0, trend: 'up', hint: 'Attributed to X' },
+      ]
+    case 'tiktok':
+      return [
+        { id: 'tt-followers', label: 'Followers', value: 18_600, format: 'number', deltaPct: 11.0, trend: 'up', hint: 'TikTok audience' },
+        { id: 'tt-new', label: 'New followers', value: 1_420, format: 'number', deltaPct: 22.0, trend: 'up', hint: 'This period' },
+        { id: 'tt-eng', label: 'Engagement rate', value: 6.4, format: 'percent', deltaPct: 0.8, trend: 'up', hint: 'Likes + comments / views' },
+        { id: 'tt-views', label: 'Video views', value: 312_000, format: 'number', deltaPct: 18.0, trend: 'up', hint: 'Total views' },
+        { id: 'tt-posts', label: 'Posts', value: 28, format: 'number', deltaPct: 7.0, trend: 'up', hint: 'Published this period' },
+        { id: 'tt-leads', label: 'Leads', value: 64, format: 'number', deltaPct: 14.0, trend: 'up', hint: 'Attributed to TikTok' },
+      ]
+    case 'youtube':
+      return [
+        { id: 'yt-subs', label: 'Subscribers', value: 6_300, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'YouTube subscribers' },
+        { id: 'yt-new', label: 'New subscribers', value: 310, format: 'number', deltaPct: 8.0, trend: 'up', hint: 'This period' },
+        { id: 'yt-views', label: 'Video views', value: 142_000, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'Total views' },
+        { id: 'yt-watch', label: 'Watch time (hrs)', value: 4_800, format: 'number', deltaPct: 6.0, trend: 'up', hint: 'Total watch hours' },
+        { id: 'yt-videos', label: 'Videos', value: 12, format: 'number', deltaPct: 0, trend: 'flat', hint: 'Published this period' },
+        { id: 'yt-leads', label: 'Leads', value: 36, format: 'number', deltaPct: 7.0, trend: 'up', hint: 'Attributed to YouTube' },
+      ]
     default:
       return [
         { id: 'followers', label: 'Total followers', value: 48_200, format: 'number', deltaPct: 3.4, trend: 'up', hint: 'Across all social channels' },
@@ -997,6 +1210,7 @@ export function getMarketingKpis(channel: MarketingChannelKey = 'all'): Kpi[] {
         { id: 'emails-sent', label: 'Emails sent', value: 18_900, format: 'number', deltaPct: 5.0, trend: 'up', hint: 'Mailchimp campaigns' },
         { id: 'open-rate', label: 'Email open rate', value: 38, format: 'percent', deltaPct: 2.0, trend: 'up', hint: 'Avg across campaigns' },
         { id: 'mktg-leads', label: 'Leads from marketing', value: 286, format: 'number', deltaPct: 9.0, trend: 'up', hint: 'Attributed to campaigns' },
+        { id: 'g-reviews', label: 'Google reviews', value: 312, format: 'number', deltaPct: 4.0, trend: 'up', hint: 'Avg rating 4.8 stars on Google Business' },
       ]
   }
 }
@@ -1013,6 +1227,9 @@ export function getChannelTrend(channel: MarketingChannelKey = 'all'): {
     facebook: { metric: 'Followers', values: [13_200, 13_500, 13_700, 13_900, 14_050, 14_200] },
     web: { metric: 'Sessions', values: [16_800, 17_500, 18_200, 19_100, 20_200, 21_400] },
     email: { metric: 'Emails sent', values: [12_400, 13_800, 15_200, 16_100, 17_800, 18_900] },
+    x: { metric: 'Followers', values: [8_100, 8_300, 8_450, 8_600, 8_750, 8_900] },
+    tiktok: { metric: 'Followers', values: [13_200, 14_400, 15_600, 16_800, 17_700, 18_600] },
+    youtube: { metric: 'Subscribers', values: [5_400, 5_600, 5_800, 6_000, 6_150, 6_300] },
   }
   const s = series[channel]
   return { metric: s.metric, points: months.map((label, i) => ({ label, value: s.values[i] })) }
@@ -1023,8 +1240,39 @@ export function getMarketingChannels(): MarketingChannel[] {
     { channel: 'Instagram', followers: 24_800, leads: 96 },
     { channel: 'Facebook', followers: 14_200, leads: 64 },
     { channel: 'Google / SEO', followers: 0, leads: 78 },
+    { channel: 'TikTok', followers: 18_600, leads: 64 },
+    { channel: 'X', followers: 8_900, leads: 28 },
+    { channel: 'YouTube', followers: 6_300, leads: 36 },
     { channel: 'Email', followers: 9_200, leads: 38 },
     { channel: 'Referral', followers: 0, leads: 10 },
+  ]
+}
+
+/** Top and lower performing social posts (by engagement). */
+export function getSocialPosts(): { title: string; channel: string; engagement: number; reach: number }[] {
+  return [
+    { title: 'EBOO before/after reel', channel: 'TikTok', engagement: 9.8, reach: 142_000 },
+    { title: 'IV drip menu walkthrough', channel: 'Instagram', engagement: 7.2, reach: 38_400 },
+    { title: 'Patient testimonial: chronic fatigue', channel: 'YouTube', engagement: 6.1, reach: 21_000 },
+    { title: 'Dr. Drannikov Q&A clip', channel: 'Instagram', engagement: 5.4, reach: 26_700 },
+    { title: 'PRP explained in 30s', channel: 'TikTok', engagement: 4.9, reach: 54_000 },
+    { title: 'Clinic tour photo dump', channel: 'Facebook', engagement: 2.1, reach: 12_300 },
+    { title: 'Hours update post', channel: 'X', engagement: 1.2, reach: 6_400 },
+    { title: 'Holiday closure notice', channel: 'Facebook', engagement: 0.8, reach: 8_900 },
+  ]
+}
+
+/** Patients gone inactive (no visit recently) - staff call list. */
+export function getInactivePatients(): { name: string; lastVisit: string; modality: string; phone: string }[] {
+  return [
+    { name: 'Daniel Cooper', lastVisit: '2026-02-18', modality: 'IV Therapy', phone: '(305) 555-0210' },
+    { name: 'Rachel Kim', lastVisit: '2026-02-11', modality: 'EBOO', phone: '(305) 555-0221' },
+    { name: 'Victor Alvarez', lastVisit: '2026-01-29', modality: 'Neuromuscular Therapy', phone: '(305) 555-0234' },
+    { name: 'Megan Lewis', lastVisit: '2026-01-22', modality: 'BEMER Therapy', phone: '(305) 555-0245' },
+    { name: 'Brandon Hughes', lastVisit: '2026-01-15', modality: 'IV Therapy', phone: '(305) 555-0256' },
+    { name: 'Priya Nair', lastVisit: '2026-01-08', modality: 'Erchonia Laser Therapy', phone: '(305) 555-0267' },
+    { name: 'Carlos Mendoza', lastVisit: '2025-12-19', modality: 'PRP', phone: '(305) 555-0278' },
+    { name: 'Stephanie Young', lastVisit: '2025-12-12', modality: 'IV Therapy', phone: '(305) 555-0289' },
   ]
 }
 
@@ -1040,11 +1288,156 @@ export function getEmailCampaigns(): EmailCampaign[] {
 // -----------------------------------------------------------------------------
 // TREATMENTS (occupancy or revenue by modality)
 // -----------------------------------------------------------------------------
-export function getTreatments(): Treatment[] {
-  return SERVICE_CATALOG.map((s) => ({
-    name: s.name,
-    treatments: s.treatments,
-    occupancyPct: s.occupancyPct,
-    revenue: s.revenue,
+export function getTreatments(scale: number = 1, payment: PaymentType = 'all'): Treatment[] {
+  const share = paymentShare(payment)
+  return SERVICE_CATALOG.map((t) => ({
+    name: t.name,
+    treatments: Math.round(t.treatments * scale),
+    occupancyPct: t.occupancyPct,
+    revenue: Math.round(t.revenue * scale * share),
+    capacity: t.capacity,
+    booked: t.booked,
+  }))
+}
+
+const TREND_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+
+/** 6-month trend for one treatment (for the click-through trend view). */
+export function getTreatmentTrend(name: string) {
+  const t = SERVICE_CATALOG.find((x) => x.name === name)
+  if (!t) return []
+  return TREND_MONTHS.map((label, i) => ({
+    label,
+    revenue: Math.round(t.revenue * (0.74 + i * 0.052) * (1 + (seeded(i, name.length) - 0.5) * 0.06)),
+    treatments: Math.round(t.treatments * (0.74 + i * 0.052)),
+    occupancyPct: Math.min(100, Math.round(t.occupancyPct * (0.85 + i * 0.03))),
+  }))
+}
+
+/** 6-month revenue trend per employee (to spot low performance over time). */
+export function getEmployeeTrend(id: string) {
+  const e = EMPLOYEE_SEEDS.find((x) => x.id === id)
+  if (!e) return []
+  const base = Math.max(1_500, e.revenue)
+  return TREND_MONTHS.map((label, i) => ({
+    label,
+    revenue: Math.round(base * (0.72 + i * 0.056) * (1 + (seeded(i, id.length + e.name.length) - 0.5) * 0.12)),
+  }))
+}
+
+/** Generic 6-month trend for any metric, so any KPI block can be clicked. */
+export function getMetricTrend(seedKey: string, current: number) {
+  return TREND_MONTHS.map((label, i) => ({
+    label,
+    value: Math.round(current * (0.72 + i * 0.056) * (1 + (seeded(i, seedKey.length) - 0.5) * 0.08)),
+  }))
+}
+
+// -----------------------------------------------------------------------------
+// AI INSIGHTS — placeholder until wired to an LLM over the live data
+// -----------------------------------------------------------------------------
+export type AiTone = 'positive' | 'watch' | 'risk'
+
+export function getAiExecutiveSummary(): string {
+  return (
+    'Helixona had a strong month: total revenue grew 8.4% MoM to $326.8k, led by EBOO (+12%) and steady IV Therapy volume. ' +
+    'Cash collection remains healthy (96%), but insurance is the drag — only 58% of billed insurance revenue has landed in the bank, ' +
+    'with $412.9k outstanding and BlueShield alone holding $127k at a 182-day payment cycle. Patient acquisition is solid ' +
+    '(96 new patients, +12.5%), though onboarding-to-first-appointment conversion slipped 4% and 8 patients have gone inactive. ' +
+    'On the floor, EBOO is capacity-constrained at 92% occupancy while medic misses run 60% over target. ' +
+    'Marketing momentum is shifting to TikTok (+22% followers), which now drives the most leads per post.'
+  )
+}
+
+export interface AiSection {
+  page: string
+  area: string
+  summary: string
+  insights: { tone: AiTone; text: string }[]
+}
+
+export function getAiSections(): AiSection[] {
+  return [
+    {
+      page: 'revenue',
+      area: 'Revenue',
+      summary: 'Growth is healthy but collection lags billing.',
+      insights: [
+        { tone: 'positive', text: 'Revenue up 8.4% MoM to $326.8k; 6th consecutive month of growth.' },
+        { tone: 'watch', text: 'Collection rate is 79% — $68k of June billing is not yet in the bank.' },
+        { tone: 'positive', text: 'EBOO is the top earner ($121k) with the best revenue-per-patient ratio.' },
+      ],
+    },
+    {
+      page: 'billing',
+      area: 'Insurance & Billing',
+      summary: 'A/R aging and BlueShield are the biggest risks.',
+      insights: [
+        { tone: 'risk', text: 'BlueShield: $46k aged over 90 days across 96 claims — largest exposure, 182-day pay cycle.' },
+        { tone: 'watch', text: 'Denial rate at 11% vs 8% goal; IVs and procedures drive most denials.' },
+        { tone: 'positive', text: 'Claims go out in 1.8 days on average — submission speed is not the bottleneck.' },
+        { tone: 'watch', text: '12 unlocked claims today are blocking submissions; chase unlocked charts/notes.' },
+      ],
+    },
+    {
+      page: 'patients',
+      area: 'Patients',
+      summary: 'Acquisition is strong; retention needs attention.',
+      insights: [
+        { tone: 'positive', text: 'New patients +12.5% (96); leads up across all channels.' },
+        { tone: 'watch', text: 'Onboarding → 1st appointment conversion slipped 4% vs last month.' },
+        { tone: 'risk', text: '8 patients have gone inactive (90+ days) — call list is ready in Patients.' },
+        { tone: 'watch', text: '44 leads denied/declined this period; cost and insurance fit are the top reasons.' },
+      ],
+    },
+    {
+      page: 'marketing',
+      area: 'Marketing',
+      summary: 'TikTok is the growth engine; Facebook underperforms.',
+      insights: [
+        { tone: 'positive', text: 'TikTok followers +22%; EBOO reels are the top-performing content (9.8% engagement).' },
+        { tone: 'positive', text: 'Google reviews at 4.8 stars (312 reviews), up 4% this period.' },
+        { tone: 'watch', text: 'Facebook engagement (2.1%) is a third of TikTok — consider repurposing reels.' },
+      ],
+    },
+    {
+      page: 'team',
+      area: 'Team & Roles',
+      summary: 'Strong utilization; misses and unlocked charts need follow-up.',
+      insights: [
+        { tone: 'risk', text: 'Medic misses (96) are 60% over target — estimated $307 cost, trending up 3 weeks.' },
+        { tone: 'watch', text: '24 unlocked charts across providers are delaying claim submissions.' },
+        { tone: 'positive', text: 'Front desk answers 86% of inbound calls; 300 missed calls and 180 voicemails to recover.' },
+      ],
+    },
+    {
+      page: 'treatments',
+      area: 'Treatments',
+      summary: 'EBOO is capacity-constrained; low utilizers drag occupancy.',
+      insights: [
+        { tone: 'watch', text: 'EBOO at 92% occupancy (7/8 spots daily) — demand exceeds capacity; consider expanding.' },
+        { tone: 'positive', text: 'IV Therapy holds 84% occupancy with the highest treatment volume (1,540).' },
+        { tone: 'watch', text: 'SCENAR, Biomodulator and MEAD run below 50% occupancy — bundle or promote.' },
+      ],
+    },
+  ]
+}
+
+export function getAiRecommendations(): { priority: 'high' | 'medium'; text: string }[] {
+  return [
+    { priority: 'high', text: 'Work the BlueShield 90+ day A/R bucket ($46k) and appeal denied IV claims first.' },
+    { priority: 'high', text: 'Lock charts daily: 24 unlocked charts + 12 unlocked claims are delaying revenue.' },
+    { priority: 'high', text: 'Call the 8 inactive patients this week — the list with phone numbers is in Patients.' },
+    { priority: 'medium', text: 'Add EBOO capacity (or extend hours): it is the top earner and is turning patients away.' },
+    { priority: 'medium', text: 'Shift ad budget toward TikTok and repurpose EBOO reels to Facebook to lift its 2.1% engagement.' },
+    { priority: 'medium', text: 'Coach medics on misses (96 vs 60 target); review the 4% drop in onboarding conversion with Marie.' },
+  ]
+}
+
+/** 6-month trend for any marketing KPI (clickable blocks). */
+export function getMarketingMetricTrend(metricId: string, current: number) {
+  return TREND_MONTHS.map((label, i) => ({
+    label,
+    value: Math.round(current * (0.72 + i * 0.056) * (1 + (seeded(i, metricId.length) - 0.5) * 0.08)),
   }))
 }

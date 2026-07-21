@@ -4,10 +4,13 @@ import { formatValue } from '../lib/format'
 
 interface Props {
   kpi: Kpi
+  /** when provided, the card is clickable (e.g. opens a trend view) */
+  onClick?: () => void
+  active?: boolean
 }
 
-export default function KpiCard({ kpi }: Props) {
-  // Un delta es "bueno" si sube cuando queremos subir, o baja cuando queremos bajar.
+export default function KpiCard({ kpi, onClick, active }: Props) {
+  // A delta is "good" if it goes up when we want up, or down when we want down.
   const positiveIsGood = !kpi.lowerIsBetter
   const isGood =
     kpi.trend === 'flat'
@@ -20,8 +23,15 @@ export default function KpiCard({ kpi }: Props) {
   const Icon =
     kpi.trend === 'up' ? ArrowUpRight : kpi.trend === 'down' ? ArrowDownRight : Minus
 
+  const interactive = onClick
+    ? 'cursor-pointer hover:border-brand-400 ' + (active ? 'border-brand-500 ring-2 ring-brand-100' : '')
+    : ''
+
   return (
-    <div className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+    <div
+      onClick={onClick}
+      className={`group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md ${interactive}`}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-slate-500">{kpi.label}</p>
         <span

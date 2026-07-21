@@ -1,8 +1,19 @@
 import { Fragment, useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, Download, Search } from 'lucide-react'
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import Card from '../components/Card'
 import type { Employee } from '../types'
-import { getEmployees } from '../data/mockData'
+import { getEmployees, getEmployeeTrend } from '../data/mockData'
+import { COLORS } from '../lib/colors'
+import { formatCompact } from '../lib/format'
 import { formatValue } from '../lib/format'
 import { downloadCsv } from '../lib/csv'
 import type { PaymentType } from '../types'
@@ -14,7 +25,22 @@ interface Props {
 
 type SortKey = 'name' | 'role' | 'revenue' | 'utilizationPct'
 
-const ROLE_FILTERS = ['All', 'Provider', 'New Patient Advisor', 'Front Desk', 'Medical Assistant', 'RCM / Billing', 'Office Manager'] as const
+const ROLE_FILTERS = [
+  'All',
+  'Provider',
+  'Physician Associate',
+  'PCC',
+  'Patient Guide',
+  'New Patient Advisor',
+  'Front Desk',
+  'Medical Assistant',
+  'Medic',
+  'Nurse',
+  'Technician',
+  'Billing',
+  'Operations Manager',
+  'Admin',
+] as const
 
 function utilTone(pct: number): string {
   if (pct >= 90) return 'text-emerald-600'
@@ -82,22 +108,20 @@ export default function Employees({ scale, payment }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Summary tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Employees shown</p>
-          <p className="mt-2 text-3xl font-bold text-ink-900">{rows.length}</p>
+      {/* Summary tiles — compact, single row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+          <p className="text-xs font-medium text-slate-500">Employees shown</p>
+          <p className="mt-0.5 text-xl font-bold text-ink-900">{rows.length}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Attributed revenue</p>
-          <p className="mt-2 text-3xl font-bold text-ink-900">{formatValue(totalRevenue, 'currency')}</p>
-          <p className="mt-1 text-xs text-slate-400">Avg utilization {avgUtil}%</p>
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+          <p className="text-xs font-medium text-slate-500">Attributed revenue · avg util {avgUtil}%</p>
+          <p className="mt-0.5 text-xl font-bold text-ink-900">{formatValue(totalRevenue, 'currency')}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Top performer</p>
-          <p className="mt-2 text-xl font-bold text-ink-900">{topPerformer?.name ?? '—'}</p>
-          <p className="mt-1 text-xs text-slate-400">
-            {topPerformer ? `${formatValue(topPerformer.revenue, 'currency')} · ${topPerformer.role}` : ''}
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+          <p className="text-xs font-medium text-slate-500">Top performer</p>
+          <p className="mt-0.5 truncate text-xl font-bold text-ink-900">
+            {topPerformer ? `${topPerformer.name} · ${formatValue(topPerformer.revenue, 'currency')}` : '—'}
           </p>
         </div>
       </div>
@@ -174,15 +198,37 @@ export default function Employees({ scale, payment }: Props) {
                     {isOpen && (
                       <tr className="border-b border-slate-100 bg-slate-50/60">
                         <td colSpan={4} className="px-2 py-3">
-                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          {/* Metric boxes — small enough to fit in one row */}
+                          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                             {e.metrics.map((m) => (
-                              <div key={m.label} className="rounded-lg border border-slate-200 bg-white p-2.5">
-                                <p className="text-[11px] text-slate-400">{m.label}</p>
+                              <div key={m.label} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+                                <p className="truncate text-[10px] text-slate-400" title={m.label}>{m.label}</p>
                                 <p className="mt-0.5 text-sm font-bold text-ink-900">
                                   {formatValue(m.value, m.format)}
                                 </p>
                               </div>
                             ))}
+                          </div>
+                          {/* Performance trend over time (spot low performers) */}
+                          <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+                            <p className="mb-1 text-xs font-semibold text-slate-500">
+                              {e.name} · revenue trend (Jan–Jun)
+                            </p>
+                            <ResponsiveContainer width="100%" height={120}>
+                              <AreaChart data={getEmployeeTrend(e.id)} margin={{ left: -12, right: 8, top: 4 }}>
+                                <defs>
+                                  <linearGradient id={`gEmp-${e.id}`} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={COLORS.cash} stopOpacity={0.35} />
+                                    <stop offset="95%" stopColor={COLORS.cash} stopOpacity={0} />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
+                                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => formatCompact(v, 'currency')} />
+                                <Tooltip formatter={(v: number) => [formatCompact(v, 'currency'), 'Revenue']} />
+                                <Area type="monotone" dataKey="revenue" stroke={COLORS.cash} fill={`url(#gEmp-${e.id})`} strokeWidth={2} />
+                              </AreaChart>
+                            </ResponsiveContainer>
                           </div>
                         </td>
                       </tr>

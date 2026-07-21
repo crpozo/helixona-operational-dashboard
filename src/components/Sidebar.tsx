@@ -5,6 +5,8 @@ import {
   LayoutDashboard,
   Megaphone,
   Route,
+  Settings,
+  Sparkles,
   Stethoscope,
   Sun,
   Syringe,
@@ -16,6 +18,7 @@ import { CLINIC_NAME } from '../data/mockData'
 export type PageId =
   | 'today'
   | 'overview'
+  | 'insights'
   | 'revenue'
   | 'billing'
   | 'patients'
@@ -24,10 +27,12 @@ export type PageId =
   | 'team'
   | 'employees'
   | 'treatments'
+  | 'admin'
 
 const NAV: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'today', label: 'Today', icon: Sun },
   { id: 'overview', label: 'Executive overview', icon: LayoutDashboard },
+  { id: 'insights', label: 'AI Insights', icon: Sparkles },
   { id: 'revenue', label: 'Revenue', icon: DollarSign },
   { id: 'billing', label: 'Insurance & Billing', icon: FileText },
   { id: 'patients', label: 'Patients', icon: Users },
@@ -36,6 +41,7 @@ const NAV: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'team', label: 'Team & Roles', icon: Stethoscope },
   { id: 'employees', label: 'Employees', icon: UserCircle },
   { id: 'treatments', label: 'Treatments', icon: Syringe },
+  { id: 'admin', label: 'Admin', icon: Settings },
 ]
 
 interface Props {

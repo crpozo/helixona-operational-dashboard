@@ -15,11 +15,11 @@ import {
 import { AlertTriangle, Info, ShieldAlert, X } from 'lucide-react'
 import Card from '../components/Card'
 import KpiCard from '../components/KpiCard'
-import type { PaymentType } from '../types'
+import TrendPanel from '../components/TrendPanel'
+import type { Goal, Kpi, PaymentType } from '../types'
 import {
   getAlerts,
   getExecutiveKpis,
-  getGoals,
   getModalityBreakdown,
   getPatientFunnel,
   getRevenueTrend,
@@ -30,6 +30,8 @@ import { formatCompact, formatValue } from '../lib/format'
 interface Props {
   scale: number
   payment: PaymentType
+  /** company goals (managed in the Admin page) */
+  goals: Goal[]
 }
 
 const SEVERITY = {
@@ -38,23 +40,30 @@ const SEVERITY = {
   info: { icon: Info, cls: 'text-brand-600 bg-brand-50 border-brand-100' },
 }
 
-export default function Overview({ scale, payment }: Props) {
+export default function Overview({ scale, payment, goals }: Props) {
   const kpis = getExecutiveKpis(scale, payment)
   const revenue = getRevenueTrend(payment)
   const funnel = getPatientFunnel(scale)
   const modalities = getModalityBreakdown(scale, payment)
-  const goals = getGoals()
   const [dismissed, setDismissed] = useState<string[]>([])
-  const alerts = getAlerts().filter((a) => !dismissed.includes(a.id))
+  const alerts = getAlerts(goals).filter((a) => !dismissed.includes(a.id))
+  const [selKpi, setSelKpi] = useState<Kpi | null>(null)
 
   return (
     <div className="space-y-6">
-      {/* Executive KPIs */}
+      {/* Executive KPIs — click any block to see its trend over time */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
+          <KpiCard
+            key={k.id}
+            kpi={k}
+            active={selKpi?.id === k.id}
+            onClick={() => setSelKpi(selKpi?.id === k.id ? null : k)}
+          />
         ))}
       </div>
+      {selKpi && <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />}
+
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Revenue trend */}
@@ -130,10 +139,11 @@ export default function Overview({ scale, payment }: Props) {
           <div className="space-y-2.5">
             {funnel.map((stage, i) => {
               const pct = Math.round((stage.count / funnel[0].count) * 100)
+              const denied = stage.stage.startsWith('Denied')
               return (
                 <div key={stage.stage}>
                   <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-600">{stage.stage}</span>
+                    <span className={`font-medium ${denied ? 'text-rose-600' : 'text-slate-600'}`}>{stage.stage}</span>
                     <span className="tabular-nums text-slate-500">
                       {stage.count.toLocaleString()} · {pct}%
                     </span>
@@ -141,7 +151,7 @@ export default function Overview({ scale, payment }: Props) {
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
                       className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: CATEGORICAL[i % CATEGORICAL.length] }}
+                      style={{ width: `${pct}%`, background: denied ? '#e11d48' : CATEGORICAL[i % CATEGORICAL.length] }}
                     />
                   </div>
                 </div>
@@ -181,8 +191,8 @@ export default function Overview({ scale, payment }: Props) {
         </Card>
       </div>
 
-      {/* Goals — these drive the alerts above */}
-      <Card title="Goals" subtitle="Targets that trigger the alerts">
+      {/* Goals — these drive the alerts above; managed in the Admin page */}
+      <Card title="Goals" subtitle="Targets that trigger the alerts · add or remove them in Admin">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {goals.map((g) => {
             const breached = g.lowerIsBetter ? g.value > g.target : g.value < g.target

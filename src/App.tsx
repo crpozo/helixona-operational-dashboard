@@ -3,6 +3,7 @@ import Sidebar, { type PageId } from './components/Sidebar'
 import Header from './components/Header'
 import Today from './pages/Today'
 import Overview from './pages/Overview'
+import AiInsights from './pages/AiInsights'
 import Revenue from './pages/Revenue'
 import Billing from './pages/Billing'
 import Patients from './pages/Patients'
@@ -11,8 +12,9 @@ import Marketing from './pages/Marketing'
 import Team from './pages/Team'
 import Employees from './pages/Employees'
 import Treatments from './pages/Treatments'
-import type { PaymentType, Period } from './types'
-import { formatPeriodLabel, getScale } from './data/mockData'
+import Admin from './pages/Admin'
+import type { Goal, PaymentType, Period } from './types'
+import { formatPeriodLabel, getGoals, getScale } from './data/mockData'
 
 const PAGE_META: Record<
   PageId,
@@ -20,20 +22,24 @@ const PAGE_META: Record<
 > = {
   today: { title: 'Today', subtitle: 'Live daily snapshot of the operation', period: false, payment: false },
   overview: { title: 'Executive overview', subtitle: 'The whole operation at a glance', period: true, payment: true },
+  insights: { title: 'AI Insights', subtitle: 'AI summary and insights across every dashboard', period: false, payment: false },
   revenue: { title: 'Revenue', subtitle: 'Estimated vs collected, mix, and ticket by modality', period: true, payment: true },
-  billing: { title: 'Insurance & Billing', subtitle: 'Claims, denials, and what payers owe', period: false, payment: false },
+  billing: { title: 'Insurance & Billing', subtitle: 'Claims, denials, and what payers owe', period: true, payment: false },
   patients: { title: 'Patients', subtitle: 'Funnel, new-patient pipeline, and modalities', period: true, payment: true },
   journey: { title: 'Patient Journey', subtitle: 'Where each patient is in the lifecycle', period: false, payment: false },
-  marketing: { title: 'Marketing', subtitle: 'Channels, followers, web, and email campaigns', period: false, payment: false },
+  marketing: { title: 'Marketing', subtitle: 'Channels, followers, web, and email campaigns', period: true, payment: false },
   team: { title: 'Team & Roles', subtitle: 'KPIs by role and per-person performance', period: true, payment: false },
   employees: { title: 'Employees', subtitle: 'Per-employee metrics, revenue, and productivity', period: true, payment: true },
-  treatments: { title: 'Treatments', subtitle: 'Revenue or occupancy by treatment, and unit usage', period: false, payment: false },
+  treatments: { title: 'Treatments', subtitle: 'Revenue or occupancy by treatment, and unit usage', period: true, payment: true },
+  admin: { title: 'Admin', subtitle: 'Company goals, employees, and roles & permissions', period: false, payment: false },
 }
 
 export default function App() {
   const [page, setPage] = useState<PageId>('today')
   const [period, setPeriod] = useState<Period>({ kind: 'preset', preset: 'month' })
   const [payment, setPayment] = useState<PaymentType>('all')
+  // Company goals are managed in Admin and drive the Overview alerts.
+  const [goals, setGoals] = useState<Goal[]>(() => getGoals())
 
   const scale = useMemo(() => getScale(period), [period])
   const meta = PAGE_META[page]
@@ -58,15 +64,17 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
           {page === 'today' && <Today />}
-          {page === 'overview' && <Overview scale={scale} payment={payment} />}
+          {page === 'overview' && <Overview scale={scale} payment={payment} goals={goals} />}
+          {page === 'insights' && <AiInsights onNavigate={setPage} />}
           {page === 'revenue' && <Revenue scale={scale} payment={payment} />}
-          {page === 'billing' && <Billing />}
+          {page === 'billing' && <Billing scale={scale} />}
           {page === 'patients' && <Patients scale={scale} payment={payment} />}
           {page === 'journey' && <PatientJourney />}
-          {page === 'marketing' && <Marketing />}
+          {page === 'marketing' && <Marketing scale={scale} />}
           {page === 'team' && <Team scale={scale} />}
           {page === 'employees' && <Employees scale={scale} payment={payment} />}
-          {page === 'treatments' && <Treatments />}
+          {page === 'treatments' && <Treatments scale={scale} payment={payment} />}
+          {page === 'admin' && <Admin goals={goals} onGoalsChange={setGoals} />}
         </main>
       </div>
     </div>

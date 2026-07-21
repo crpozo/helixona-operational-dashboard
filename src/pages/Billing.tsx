@@ -13,23 +13,46 @@ import {
 import { Download } from 'lucide-react'
 import Card from '../components/Card'
 import KpiCard from '../components/KpiCard'
+import TrendPanel from '../components/TrendPanel'
 import {
+  getAgingByPayer,
   getBillingTrend,
   getClaimsByPayer,
   getDenials,
+  getDenialsByCpt,
   getInsuranceKpis,
+  getWriteOffDetail,
 } from '../data/mockData'
 import { CATEGORICAL, COLORS } from '../lib/colors'
 import { formatCompact, formatValue } from '../lib/format'
 import { downloadCsv } from '../lib/csv'
-import type { Kpi } from '../types'
+import type { Kpi, PayerClaims } from '../types'
 
 type OwedBasis = 'billed' | 'allowable'
 
-export default function Billing() {
+interface Props {
+  scale: number
+}
+
+// Which payer field backs each KPI, for the insurance-weight drill-down.
+const WEIGHT_FIELD: Record<string, keyof PayerClaims> = {
+  'billed': 'billed',
+  'claims-sent': 'claims',
+  'days-to-submit': 'avgDaysToPay',
+  'days-to-pay': 'avgDaysToPay',
+  'denial-rate': 'denialRate',
+  'unlocked-claims': 'claims',
+  'appeals-sent': 'claims',
+  'claims-paid': 'paid',
+  'outstanding-ar': 'outstanding',
+}
+const ADDITIVE = new Set(['billed', 'claims', 'paid', 'outstanding'])
+
+export default function Billing({ scale }: Props) {
   const payers = getClaimsByPayer()
   const [payerFilter, setPayerFilter] = useState<string>('All')
   const [basis, setBasis] = useState<OwedBasis>('billed')
+  const [selKpi, setSelKpi] = useState<Kpi | null>(null)
 
   // Selected payer (null = All). Everything below reacts to this.
   const selected = payerFilter === 'All' ? null : payers.find((p) => p.payer === payerFilter) ?? null
@@ -45,7 +68,7 @@ export default function Billing() {
         { id: 'p-days', label: 'Avg days to pay', value: selected.avgDaysToPay, format: 'days', deltaPct: 0, trend: 'flat', lowerIsBetter: true, hint: `${selected.payer} cycle` },
         { id: 'p-denial', label: 'Denial rate', value: selected.denialRate, format: 'percent', deltaPct: 0, trend: 'flat', lowerIsBetter: true, hint: 'Claims denied' },
       ]
-    : getInsuranceKpis()
+    : getInsuranceKpis(scale)
 
   const trend = getBillingTrend().map((t) => ({
     label: t.label,
@@ -74,6 +97,19 @@ export default function Billing() {
     [payers, payerFilter],
   )
   const totalOwed = rows.reduce((s, p) => s + owed(p), 0)
+
+  // A/R aging (respects the insurance filter)
+  const aging = getAgingByPayer().filter((a) => payerFilter === 'All' || a.payer === payerFilter)
+  const agingTotal = (a: (typeof aging)[number]) => a.b0_30 + a.b31_60 + a.b61_90 + a.b90plus
+  const agingMoney = aging.reduce((s, a) => s + agingTotal(a), 0)
+  const agingClaims = aging.reduce((s, a) => s + a.claims, 0)
+
+  const exportAging = () =>
+    downloadCsv(
+      'ar-aging-by-payer.csv',
+      ['Payer', 'Open claims', '0-30 days', '31-60 days', '61-90 days', '90+ days', 'Total outstanding'],
+      aging.map((a) => [a.payer, a.claims, a.b0_30, a.b31_60, a.b61_90, a.b90plus, agingTotal(a)]),
+    )
 
   const exportClaims = () =>
     downloadCsv(
@@ -121,9 +157,9 @@ export default function Billing() {
             <p className="mt-1 text-[11px] text-emerald-700/80">Actually received — recognized revenue</p>
           </div>
           <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4">
-            <p className="text-sm font-medium text-rose-700">At risk · outstanding</p>
+            <p className="text-sm font-medium text-rose-700">Appealing Denial Clawback</p>
             <p className="mt-1 text-2xl font-bold tabular-nums text-rose-800">{formatValue(atRisk, 'currency')}</p>
-            <p className="mt-1 text-[11px] text-rose-700/80">Pending — can be denied or clawed back</p>
+            <p className="mt-1 text-[11px] text-rose-700/80">Denials being appealed / clawed back · 100% accurate</p>
           </div>
         </div>
         <p className="mt-2 text-xs text-slate-400">
@@ -132,12 +168,116 @@ export default function Billing() {
         </p>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs — click any block for insurance weight + trend over time */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
+          <KpiCard
+            key={k.id}
+            kpi={k}
+            active={selKpi?.id === k.id}
+            onClick={() => setSelKpi(selKpi?.id === k.id ? null : k)}
+          />
         ))}
       </div>
+      {selKpi && (selKpi.id === 'denial-rate' || selKpi.id === 'p-denial') && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card title="Denials by CPT code" subtitle="Which codes are driving the denial rate">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                    <th className="pb-2 font-semibold">CPT</th>
+                    <th className="pb-2 font-semibold">Description</th>
+                    <th className="pb-2 text-right font-semibold">Denials</th>
+                    <th className="pb-2 text-right font-semibold">Denial %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getDenialsByCpt().map((c) => (
+                    <tr key={c.cpt} className="border-b border-slate-100 last:border-0">
+                      <td className="py-2 font-mono font-semibold text-ink-900">{c.cpt}</td>
+                      <td className="py-2 text-slate-600">{c.desc}</td>
+                      <td className="py-2 text-right tabular-nums text-slate-600">{c.denials}</td>
+                      <td className={`py-2 text-right tabular-nums ${c.rate >= 12 ? 'font-semibold text-rose-600' : 'text-slate-600'}`}>{c.rate}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[11px] text-slate-400">Highest-denial codes first — e.g. IV infusion (96365) drives most denials.</p>
+          </Card>
+          <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />
+        </div>
+      )}
+
+      {selKpi && selKpi.id === 'write-offs' && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card title="Write-offs by reason" subtitle="Where uncollectible balances are going">
+            <div className="space-y-2.5">
+              {(() => {
+                const detail = getWriteOffDetail()
+                const total = detail.reduce((sum, d) => sum + d.amount, 0)
+                return detail.map((d) => {
+                  const pct = Math.round((d.amount / total) * 100)
+                  return (
+                    <div key={d.reason}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="font-medium text-slate-600">{d.reason}</span>
+                        <span className="tabular-nums text-slate-500">{formatValue(d.amount, 'currency')}<span className="ml-1.5 text-xs text-slate-400">({pct}%)</span></span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full rounded-full bg-rose-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+          </Card>
+          <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />
+        </div>
+      )}
+
+      {selKpi && selKpi.id !== 'denial-rate' && selKpi.id !== 'p-denial' && selKpi.id !== 'write-offs' && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card
+            title={`Insurance company weight · ${selKpi.label}`}
+            subtitle="How much each payer contributes"
+          >
+            <div className="space-y-2.5">
+              {(() => {
+                const field = WEIGHT_FIELD[selKpi.id] ?? 'billed'
+                const additive = ADDITIVE.has(field as string)
+                const total = payers.reduce((sum, p) => sum + (p[field] as number), 0)
+                const max = Math.max(...payers.map((p) => p[field] as number))
+                return [...payers]
+                  .sort((a, b) => (b[field] as number) - (a[field] as number))
+                  .map((p) => {
+                    const v = p[field] as number
+                    const pct = additive ? Math.round((v / total) * 100) : Math.round((v / max) * 100)
+                    const display =
+                      field === 'avgDaysToPay' ? `${v}d` : field === 'denialRate' ? `${v}%` :
+                      field === 'claims' ? v.toLocaleString() : formatValue(v, 'currency')
+                    return (
+                      <div key={p.payer}>
+                        <div className="mb-1 flex items-center justify-between text-sm">
+                          <span className="font-medium text-slate-600">{p.payer}</span>
+                          <span className="tabular-nums text-slate-500">
+                            {display}{additive && <span className="ml-1.5 text-xs text-slate-400">({pct}%)</span>}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                          <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })
+              })()}
+            </div>
+          </Card>
+          <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Billed vs collected MoM */}
@@ -156,13 +296,13 @@ export default function Billing() {
         </Card>
 
         {/* Denials by category */}
-        <Card title="Denials by category" subtitle="Count and avg delay (days)">
+        <Card title="Denials by category" subtitle="# of denials">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={denials} layout="vertical" margin={{ left: 8, right: 16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="category" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={80} />
-              <Tooltip formatter={(v: number, n) => [n === 'denials' ? `${v} denials` : `${v} days`, n === 'denials' ? 'Denials' : 'Avg delay']} />
+              <Tooltip formatter={(v: number) => [`${v} denials`, 'Denials']} />
               <Bar dataKey="denials" radius={[0, 4, 4, 0]} barSize={14}>
                 {denials.map((_, i) => (
                   <Cell key={i} fill={CATEGORICAL[i % CATEGORICAL.length]} />
@@ -231,6 +371,66 @@ export default function Billing() {
                   <td className={`py-2.5 text-right tabular-nums ${p.denialRate >= 12 ? 'font-semibold text-rose-600' : 'text-slate-600'}`}>
                     {p.denialRate}%
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* A/R aging: how much money and how many claims, per insurance */}
+      <Card
+        title="A/R aging by insurance"
+        subtitle={`${formatValue(agingMoney, 'currency')} outstanding across ${agingClaims} open claims`}
+        action={
+          <button
+            onClick={exportAging}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-brand-300 hover:text-brand-700"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export report
+          </button>
+        }
+      >
+        <ResponsiveContainer width="100%" height={Math.max(160, aging.length * 44 + 60)}>
+          <BarChart data={aging} layout="vertical" margin={{ left: 24, right: 16 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" horizontal={false} />
+            <XAxis type="number" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
+            <YAxis type="category" dataKey="payer" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={120} />
+            <Tooltip formatter={(v: number) => formatCompact(v, 'currency')} />
+            <Legend iconType="circle" />
+            <Bar dataKey="b0_30" name="0-30 days" stackId="a" fill="#cbb892" />
+            <Bar dataKey="b31_60" name="31-60 days" stackId="a" fill={COLORS.cash} />
+            <Bar dataKey="b61_90" name="61-90 days" stackId="a" fill="#8a6d3b" />
+            <Bar dataKey="b90plus" name="90+ days" stackId="a" fill="#1c1c1c" radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                <th className="pb-2 font-semibold">Payer</th>
+                <th className="pb-2 text-right font-semibold">Open claims</th>
+                <th className="pb-2 text-right font-semibold">0-30d</th>
+                <th className="pb-2 text-right font-semibold">31-60d</th>
+                <th className="pb-2 text-right font-semibold">61-90d</th>
+                <th className="pb-2 text-right font-semibold">90+d</th>
+                <th className="pb-2 text-right font-semibold">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {aging.map((a) => (
+                <tr key={a.payer} className="border-b border-slate-100 last:border-0">
+                  <td className="py-2.5 font-medium text-ink-900">{a.payer}</td>
+                  <td className="py-2.5 text-right tabular-nums text-slate-600">{a.claims}</td>
+                  <td className="py-2.5 text-right tabular-nums text-slate-600">{formatValue(a.b0_30, 'currency')}</td>
+                  <td className="py-2.5 text-right tabular-nums text-slate-600">{formatValue(a.b31_60, 'currency')}</td>
+                  <td className="py-2.5 text-right tabular-nums text-slate-600">{formatValue(a.b61_90, 'currency')}</td>
+                  <td className={`py-2.5 text-right tabular-nums ${a.b90plus > 20_000 ? 'font-semibold text-rose-600' : 'text-slate-600'}`}>
+                    {formatValue(a.b90plus, 'currency')}
+                  </td>
+                  <td className="py-2.5 text-right tabular-nums font-semibold text-ink-900">{formatValue(agingTotal(a), 'currency')}</td>
                 </tr>
               ))}
             </tbody>
