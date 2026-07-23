@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts'
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Phone } from 'lucide-react'
 import Card from '../components/Card'
 import FunnelChart from '../components/FunnelChart'
@@ -32,11 +33,39 @@ interface Props {
   payment: PaymentType
 }
 
-const TONE: Record<string, string> = {
-  brand: 'bg-brand-50 text-brand-700 border-brand-100',
-  green: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  amber: 'bg-amber-50 text-amber-700 border-amber-100',
-  red: 'bg-rose-50 text-rose-700 border-rose-100',
+/** A uniform stat cell for the population panel, with an optional ratio meter. */
+function StatCell({
+  label,
+  value,
+  hint,
+  meter,
+  accent,
+}: {
+  label: string
+  value: ReactNode
+  hint?: string
+  meter?: number
+  accent?: boolean
+}) {
+  return (
+    <div
+      className={`flex flex-col rounded-xl border p-4 ${
+        accent ? 'border-brand-200 bg-brand-50/60' : 'border-slate-100 bg-slate-50/60'
+      }`}
+    >
+      <p className={`text-xs font-medium ${accent ? 'text-brand-700' : 'text-slate-500'}`}>{label}</p>
+      <p className="mt-1.5 text-2xl font-bold tabular-nums tracking-tight text-ink-900">{value}</p>
+      {typeof meter === 'number' && (
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200/70">
+          <div
+            className={`h-full rounded-full ${accent ? 'bg-brand-500' : 'bg-emerald-500'}`}
+            style={{ width: `${Math.min(100, meter)}%` }}
+          />
+        </div>
+      )}
+      {hint && <p className="mt-1.5 text-[11px] leading-tight text-slate-400">{hint}</p>}
+    </div>
+  )
 }
 
 export default function Patients({ scale, payment }: Props) {
@@ -46,10 +75,14 @@ export default function Patients({ scale, payment }: Props) {
   const activePatients = getExecutiveKpis(scale, payment).find((k) => k.id === 'active-patients')?.value ?? 0
   const pop = getPatientPopulation(scale)
   const ivRatioPct = Math.round((pop.activeIvPatients / pop.totalIvScripts) * 100)
+  const pocPct = activePatients > 0 ? Math.round((pop.followingPoc / activePatients) * 100) : 0
+  const totalCalls = Math.round(1_720 * scale)
   const sources = getSuccessfulLeadSources(scale)
   const funnel = getPatientFunnel(scale)
   const pipeline = getNewPatientPipeline(scale)
+  const waitlisted = pipeline.find((p) => p.status === 'Waitlisted')?.count ?? 0
   const programs = getPrograms()
+  const programTotal = programs.reduce((s, p) => s + p.patients, 0)
   const modalities = getModalityBreakdown(scale, payment)
   const inactive = getInactivePatients()
   const [selKpi, setSelKpi] = useState<Kpi | null>(null)
@@ -70,38 +103,39 @@ export default function Patients({ scale, payment }: Props) {
       {selKpi && <TrendPanel metric={selKpi} onClose={() => setSelKpi(null)} />}
 
       {/* Patient population — stock metrics (don't rescale with the period) */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Total patients</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">{pop.totalPatients.toLocaleString()}</p>
-          <p className="mt-1 text-[11px] text-slate-400">All patients on record</p>
+      <Card title="Patient population" subtitle="Current totals · leads & onboarding detail lives with Marie (Team & Roles)">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <StatCell label="Total patients" value={pop.totalPatients.toLocaleString()} hint="All patients on record" />
+          <StatCell label="IV patients" value={pop.ivPatients.toLocaleString()} hint="Distinct patients receiving IVs in the period" />
+          <StatCell
+            accent
+            label="Active IV patients / IV scripts"
+            value={
+              <>
+                {pop.activeIvPatients}
+                <span className="text-slate-300">/</span>
+                {pop.totalIvScripts}
+                <span className="ml-2 text-sm font-semibold text-brand-700">{ivRatioPct}%</span>
+              </>
+            }
+            meter={ivRatioPct}
+            hint="Actively coming in vs. all with an IV script"
+          />
+          <StatCell
+            label="Following plan of care"
+            value={
+              <>
+                {pop.followingPoc.toLocaleString()}
+                <span className="ml-2 text-sm font-semibold text-slate-400">{pocPct}% of active</span>
+              </>
+            }
+            meter={pocPct}
+            hint="Active patients on track with their POC"
+          />
+          <StatCell label="Total calls" value={totalCalls.toLocaleString()} hint="Inbound + outbound this period" />
+          <StatCell label="Waitlisted" value={waitlisted.toLocaleString()} hint="New patients waiting for an opening" />
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Following plan of care</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">
-            {pop.followingPoc.toLocaleString()}
-            {activePatients > 0 && (
-              <span className="ml-2 text-sm font-semibold text-slate-400">
-                {Math.round((pop.followingPoc / activePatients) * 100)}% of active
-              </span>
-            )}
-          </p>
-          <p className="mt-1 text-[11px] text-slate-400">Active patients on track with their POC</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">IV patients</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">{pop.ivPatients.toLocaleString()}</p>
-          <p className="mt-1 text-[11px] text-slate-400">Distinct patients receiving IVs in the period</p>
-        </div>
-        <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
-          <p className="text-sm font-medium text-brand-700">Active IV patients / IV scripts</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">
-            {pop.activeIvPatients}/{pop.totalIvScripts}
-            <span className="ml-2 text-sm font-semibold text-brand-700">{ivRatioPct}%</span>
-          </p>
-          <p className="mt-1 text-[11px] text-brand-700/70">Patients actively coming in vs. all with an IV script</p>
-        </div>
-      </div>
+      </Card>
 
       {/* Inactive patients — click to get the call list */}
       <Card
@@ -156,32 +190,6 @@ export default function Patients({ scale, payment }: Props) {
         )}
       </Card>
 
-      {/* Population-level stats — leads/onboarding detail lives with Marie (Team & Roles) */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className={`rounded-2xl border p-4 ${TONE.brand}`}>
-          <p className="text-3xl font-bold tabular-nums">{Math.round(1_720 * scale).toLocaleString()}</p>
-          <p className="mt-1 text-sm font-medium">Total calls</p>
-        </div>
-        {pipeline
-          .filter((p) => p.status === 'Waitlisted')
-          .map((p) => (
-            <div key={p.status} className={`rounded-2xl border p-4 ${TONE[p.tone]}`}>
-              <p className="text-3xl font-bold tabular-nums">{p.count.toLocaleString()}</p>
-              <p className="mt-1 text-sm font-medium">{p.status}</p>
-            </div>
-          ))}
-      </div>
-
-      {/* Helixona program tracks */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {programs.map((p) => (
-          <div key={p.name} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-3xl font-bold tabular-nums text-ink-900">{p.patients.toLocaleString()}</p>
-            <p className="mt-1 text-sm font-medium text-slate-500">{p.name}</p>
-          </div>
-        ))}
-      </div>
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Conversion funnel" subtitle="From lead to first appointment · also shown in Marie's section (Team & Roles)">
           <FunnelChart funnel={funnel} />
@@ -212,6 +220,28 @@ export default function Patients({ scale, payment }: Props) {
                 )
               })
             })()}
+          </div>
+        </Card>
+
+        <Card title="Program tracks" subtitle="Enrollment by Helixona program">
+          <div className="space-y-3.5">
+            {programs.map((p, i) => {
+              const pct = Math.round((p.patients / programTotal) * 100)
+              return (
+                <div key={p.name}>
+                  <div className="mb-1 flex items-baseline justify-between">
+                    <span className="text-sm font-medium text-slate-600">{p.name}</span>
+                    <span className="text-lg font-bold tabular-nums text-ink-900">{p.patients.toLocaleString()}</span>
+                  </div>
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${pct}%`, background: CATEGORICAL[i % CATEGORICAL.length] }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </Card>
 
